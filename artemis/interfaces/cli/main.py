@@ -17,6 +17,7 @@
 from typing import Annotated
 
 from artemis._version import __version__
+from artemis.interfaces.cli.commands.bench import bench_app
 from artemis.interfaces.cli.commands.doctor import doctor_command
 from artemis.interfaces.cli.commands.helper import helper_app
 from artemis.interfaces.cli.commands.run import run_command
@@ -42,6 +43,7 @@ app.command(name="doctor", help="Check system prerequisites, device status, and 
     doctor_command
 )
 app.add_typer(trace_app, name="trace", help="Inspect and query execution traces.")
+app.add_typer(bench_app, name="bench", help="Android QA benchmark: serve, export, grade, score.")
 app.add_typer(
     helper_app, name="helper", help="Manage the Accessibility Helper APK on attached devices."
 )

@@ -188,6 +188,7 @@ pythonpath = [
 # Specify test discovery patterns
 testpaths = [
     "tests/tools",
+    "tests/bench",
 ]
 python_files = [
     "*.test.py",
