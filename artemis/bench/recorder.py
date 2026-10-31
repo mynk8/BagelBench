@@ -40,6 +40,7 @@ VERDICT_FILE = "verdict.json"
 SCREENS_DIR = "screens"
 
 VERDICTS = ("DEFECT", "NO_DEFECT", "INCONCLUSIVE")
+OBSERVATION_TOOLS = frozenset({"observe_screen"})
 
 
 @dataclass
@@ -74,17 +75,18 @@ class RunRecorder:
         self.run_dir = Path(run_dir)
         (self.run_dir / SCREENS_DIR).mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
-        self._steps = self._count_existing_steps()
-
-    def _count_existing_steps(self) -> int:
-        path = self.run_dir / STEPS_FILE
-        if not path.is_file():
-            return 0
-        return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+        existing = load_steps(self.run_dir)
+        self._steps = len(existing)
+        self._actions = sum(1 for s in existing if s.get("tool") not in OBSERVATION_TOOLS)
 
     @property
     def step_count(self) -> int:
         return self._steps
+
+    @property
+    def action_count(self) -> int:
+        """Steps that acted on the device; observations are free."""
+        return self._actions
 
     @property
     def verdict_submitted(self) -> bool:
@@ -102,6 +104,8 @@ class RunRecorder:
         line = json.dumps(asdict(step), ensure_ascii=False, sort_keys=True)
         with self._lock, (self.run_dir / STEPS_FILE).open("a", encoding="utf-8") as f:
             f.write(line + "\n")
+            if step.tool not in OBSERVATION_TOOLS:
+                self._actions += 1
 
     def submit_verdict(self, verdict: str, flag_step: int | None, note: str = "") -> dict[str, Any]:
         """Stores the final answer; raises on a second submission or a bad flag step."""

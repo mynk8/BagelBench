@@ -45,6 +45,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 from artemis.agents.flash.runner import FlashRunner
+from artemis.bench.flash import BenchRun, install_bench_session
 from artemis.clients.screen_client_factory import (
     ScreenClient,
     create_screen_client,
@@ -563,7 +564,14 @@ class AgentBase:
                         max_turns = (
                             request.max_steps if request.max_steps != RECURSION_LIMIT else None
                         )
-                        runner = FlashRunner(context, goal=request.goal, max_turns=max_turns)
+                        # A benchmark run routes every device call through the
+                        # recording bench server (artemis.bench.flash).
+                        bench = BenchRun.from_env()
+                        if bench is not None:
+                            await install_bench_session(context, bench)
+                        runner = FlashRunner(
+                            context, goal=request.goal, max_turns=max_turns, bench=bench
+                        )
                         flash_result = await runner.run(state)
 
                         output = flash_result

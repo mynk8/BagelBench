@@ -12,7 +12,7 @@ Keep this direction across tasks and context changes.
 - Show unknown when alternatives, evidence, or an independent outcome oracle are missing.
 - Preserve the original natural-language test, declared acceptance criteria, and experiment versions.
 - Evaluate execution success separately from explanation faithfulness and failure localization.
-- Keep outcome-oracle information outside the actor and Checker inputs during evaluation.
+- Keep outcome-oracle information (build labels, signatures, oracle results) outside every agent input during evaluation.
 - A replay by a different model is not a record of why the original actor chose an action.
 - Follow docs/agent-interpretability-research.md and docs/startup-patterns.md for sourced methods and priorities.
 - Preserve secrets in ignored .env files. Never print or commit credentials.

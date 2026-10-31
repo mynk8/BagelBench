@@ -54,6 +54,8 @@ from langchain_core.messages import (
 )
 
 from artemis.agents.flash.summarizer import VisualStepSummarizer, build_focus_context
+from artemis.bench.flash import BenchRun
+from artemis.bench.recorder import load_verdict
 from artemis.agents.flash.guidance import (
     REASONING_REMINDER,
     UserGuidance,
@@ -104,10 +106,10 @@ logger = get_logger(__name__)
 
 _NO_TOOL_CALL_NOTICE = (
     "You did not call any tools last turn. Please make progress by calling an"
-    " action tool or 'report_task_status'."
+    " action tool or '{terminal}'."
 )
 
-_FINAL_TURN_WARNING = "[WARNING] This is your final turn; only 'report_task_status' is available."
+_FINAL_TURN_WARNING = "[WARNING] This is your final turn; only '{terminal}' is available."
 
 
 @dataclass
@@ -143,9 +145,20 @@ class _TurnRecord:
 class FlashRunner:
     """Reactive, ultra-fast agent execution loop supporting all VLM providers."""
 
-    def __init__(self, ctx: ArtemisContext, goal: str, max_turns: int | None = None):
+    def __init__(
+        self,
+        ctx: ArtemisContext,
+        goal: str,
+        max_turns: int | None = None,
+        bench: BenchRun | None = None,
+    ):
         self.ctx = ctx
         self.goal = goal
+        # Benchmark reference-agent mode (artemis.bench.flash): the bench tool set,
+        # submit_verdict as the terminal tool, and no helper-model calls, so the
+        # model under test makes every decision.
+        self.bench = bench
+        self.terminal_tool = "submit_verdict" if bench else "report_task_status"
         try:
             cfg = load_agent_config()
             self.max_turns = max_turns if max_turns is not None else cfg.flash.max_turns
@@ -172,7 +185,7 @@ class FlashRunner:
                 max_concurrency=self.memory_runtime_cfg.max_concurrency,
                 flush_timeout_s=self.memory_runtime_cfg.flush_timeout_s,
             )
-            if self.step_summarizer_cfg.enabled
+            if self.step_summarizer_cfg.enabled and bench is None
             else None
         )
         # Publish the service on the composition root (ctx.step_memory) so
@@ -197,7 +210,18 @@ class FlashRunner:
         setup = getattr(self.ctx, "execution_setup", None)
         return getattr(setup, "video_recording_tools_enabled", False) is True
 
+    def _get_bench_tools(self) -> list:
+        """The bench tool surface: bench device actions plus the bench extensions."""
+        from artemis.bench.server import BENCH_ACTIONS
+        from artemis.mcp.action_manifest import filter_declarations
+
+        tools = [t for t in VALIDATOR_TOOLS_DECLARATION if t.name in BENCH_ACTIONS]
+        tools.insert(1, CLICK_SEQUENCE_TOOL)
+        return filter_declarations(tools, self.ctx.actuator, "flash")
+
     def _get_tools(self) -> list:
+        if self.bench is not None:
+            return self._get_bench_tools()
         # Flash has no tool that writes notes and its prompt never teaches
         # them, so the Validator set's note readers are left out here.
         tools = [
@@ -257,7 +281,8 @@ class FlashRunner:
             start_ratio=getattr(cfg, "start_ratio", None),
             session_start=session_start if isinstance(session_start, (int, float)) else None,
         )
-        if engine is not None:
+        # Chunk compression summarizes history with its own model; bench runs skip it.
+        if engine is not None and self.bench is None:
             try:
                 from artemis.memory import HistoryChunkManager
 
@@ -297,7 +322,8 @@ class FlashRunner:
         tool leaves no trace in the prompt; until an actuator is wired in, the
         full manifest set reproduces the historical prompt.
         """
-        prompt_path = Path(__file__).parent / "flash_runner.md"
+        template = "flash_bench.md" if self.bench is not None else "flash_runner.md"
+        prompt_path = Path(__file__).parent / template
         prompt_template = prompt_path.read_text(encoding="utf-8")
         available_tools = frozenset(t.name for t in tools_declaration)
         return Template(prompt_template).render(goal=self.goal, available_tools=available_tools)
@@ -387,7 +413,7 @@ class FlashRunner:
             per_turn.append((injected.wrapper, True))
             per_turn.append((injected.body, False))
         if is_final:
-            per_turn.append((_FINAL_TURN_WARNING, True))
+            per_turn.append((_FINAL_TURN_WARNING.format(terminal=self.terminal_tool), True))
         if previous_turn_silent:
             per_turn.append((REASONING_REMINDER, True))
         for text, is_ephemeral in per_turn:
@@ -976,6 +1002,21 @@ class FlashRunner:
             )
             if name not in action_names:
                 index_elements = self._extend_index_snapshot(state, index_elements, before_len)
+            if self.bench is not None and name == "submit_verdict":
+                verdict = load_verdict(self.bench.run_dir)
+                if verdict is not None:
+                    if self.summarizer:
+                        await self.summarizer.flush()
+                    return (
+                        {
+                            "status": "completed",
+                            "explanation": "Verdict submitted.",
+                            "verdict": verdict,
+                        },
+                        pre_screenshot_bytes,
+                        xml_list,
+                        action_sequence,
+                    )
         return None, pre_screenshot_bytes, xml_list, action_sequence
 
     @staticmethod
@@ -1049,7 +1090,7 @@ class FlashRunner:
         self._llm = llm
 
         tools_declaration = self._get_tools()
-        report_only_tools = [t for t in tools_declaration if t.name == "report_task_status"]
+        report_only_tools = [t for t in tools_declaration if t.name == self.terminal_tool]
 
         ledger, img_bytes, xml_list = await self._prepare_conversation(state, tools_declaration)
 
@@ -1135,7 +1176,7 @@ class FlashRunner:
                 if is_final:
                     final_report = {"status": "failed", "explanation": raw_text}
                     break
-                pending_notices.append(_NO_TOOL_CALL_NOTICE)
+                pending_notices.append(_NO_TOOL_CALL_NOTICE.format(terminal=self.terminal_tool))
                 ledger.stage_turn(messages[turn_base:])
                 previous_turn = _TurnRecord()
                 continue

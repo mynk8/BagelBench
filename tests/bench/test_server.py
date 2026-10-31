@@ -33,6 +33,8 @@ class FakeShell:
         self.calls.append(argv)
         if argv[:2] == ["dumpsys", "activity"]:
             return "  mResumedActivity: ActivityRecord{1 u0 org.tasks/.MainActivity t5}\n"
+        if argv[:3] == ["pm", "list", "packages"]:
+            return "package:org.tasks\npackage:com.android.settings\n"
         return ""
 
 
@@ -124,20 +126,46 @@ def test_verdict_is_final_and_must_flag_a_taken_step(setup):
     assert load_verdict(recorder.run_dir)["flag_step"] == 1
 
 
-def test_step_budget_blocks_actions_but_not_the_verdict(setup):
+def test_action_budget_spares_observation_and_the_verdict(setup):
     recorder, shell = setup
     server = bench_server.build_bench_server(MockActuator(), recorder, shell, step_budget=1)
     results = call(
         server,
         [
-            ("observe_screen", {}),
+            ("click", {"target": [500, 300]}),
+            ("click", {"target": [500, 300]}),
             ("observe_screen", {}),
             ("submit_verdict", {"verdict": "NO_DEFECT"}),
         ],
     )
-    assert not results[0].isError
-    assert results[1].isError and "budget" in text(results[1])
+    assert results[0].structuredContent["ok"] is True
+    assert results[1].structuredContent["ok"] is False and "budget" in text(results[1])
     assert not results[2].isError
+    assert not results[3].isError
+
+
+def test_flash_session_reads_step_numbers_and_observations(setup):
+    """The in-process ActionSession that Flash uses sees step-numbered results."""
+    from artemis.mcp.action_session import ActionSession
+
+    recorder, shell = setup
+    server = bench_server.build_bench_server(MockActuator(), recorder, shell)
+
+    async def go():
+        session = ActionSession(server)
+        await session.start()
+        try:
+            res = await session.call("click", {"target": [500, 300]})
+            obs = await session.observe(settle_ms=0)
+        finally:
+            await session.aclose()
+        return res, obs
+
+    res, obs = asyncio.run(go())
+    assert res.ok and res.message.startswith("[step 1] ")
+    assert obs.ok and obs.message.startswith("[step 2]")
+    assert obs.elements[0]["text"] == "Quarterly report"
+    assert obs.screenshot_path.endswith("step_0002.jpg")
 
 
 def test_conditions_run_fixed_commands_scoped_to_the_app(setup):
@@ -216,3 +244,19 @@ def test_host_serves_slot_endpoints_and_guards_the_record(setup):
         )
         assert init.status_code == 200
         assert "android" in init.text
+
+
+def test_manage_app_needs_an_exact_installed_package(setup, monkeypatch):
+    recorder, shell = setup
+    launched = []
+
+    async def fake_find_package(ctx, app_name, use_fallback=True):
+        launched.append(app_name)
+        return None
+
+    monkeypatch.setattr("artemis.tools.mobile.launch_app.find_package", fake_find_package)
+    server = bench_server.build_bench_server(MockActuator(), recorder, shell)
+    (result,) = call(server, [("manage_app", {"action": "launch", "app_name": "Tasks"})])
+    assert result.structuredContent["ok"] is False
+    assert "exact package" in text(result)
+    assert launched == []  # never reached name resolution

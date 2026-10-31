@@ -9,7 +9,7 @@ The agent runtime is a fork of [Google Artemis](https://github.com/google/artemi
 1. **Pick a case.** One matched pair from the eval set: a control (correct record, right answer PASS) or a fault (one field broken, right answer FAIL). Both variants use the same test text.
 2. **Seed the app.** Code writes the case's records into the app's database on the emulator.
 3. **Read before.** Code reads the records back to confirm the seed landed.
-4. **Agent tests the app.** The Planner writes a checklist; each turn the Operator sees a screenshot and the screen's text, picks one action, and the Validator approves it. The agent ends with a verdict in its notes. A second model, the Checker, reviews the run and gives its own verdict.
+4. **Agent tests the app.** One model runs the Flash loop: each turn it sees a screenshot and the screen's text and picks one action. It ends with a verdict.
 5. **Read after.** Code reads the database again: are the target fields correct, and did nothing else change?
 6. **Score.** The agent's verdict is compared with the data read. Outcomes: correct, wrong PASS, wrong FAIL, no decision.
 
@@ -43,6 +43,28 @@ make dev            # backend on :8000, research UI on :5173
 
 Model keys go in `.env` (see `.env.example`). In the UI, **New run** runs selected eval pairs end to end; **Eval set** checks all 600 pairs offline; **Results** shows accuracy, wrong PASS, wrong FAIL, no decision and pair accuracy per model, bucket and app, with 95% Wilson intervals.
 
+## Benchmark: any agent, one device interface
+
+`artemis bench` exposes the phone to any agent through one MCP tool set: UI actions, a screen observation, mobile-condition tools (rotation, process death, network, permissions, font scale, dark mode) and a single `submit_verdict` answer. There is no shell or app-data access, and no model is called on the device side. Every call is a numbered step whose screen the harness records, and grading reads only that record and the case's hidden signature, with no model involved. The grading rule is in [docs/benchmark-task-recipe.md](docs/benchmark-task-recipe.md) §0.6.
+
+```bash
+# Export validated cases as Harbor tasks (plus host-side slots.json and manifest.json)
+uv run artemis bench export-harbor cases.json --out-dir bench-out \
+    --device-host-url http://10.0.0.5:8765 --allow-host api.anthropic.com
+# Serve the device to agents
+uv run artemis bench serve --slots bench-out/slots.json --serial emulator-5554 \
+    --host 0.0.0.0 --public-host 10.0.0.5
+# Any Harbor agent, e.g. Claude Code or Codex, with built-in web search off
+harbor run -p bench-out/tasks -a claude-code -m anthropic/<model> \
+    --n-concurrent 1 --ak disable_web_search=true
+# Or the Flash reference agent (model: the `operator` node in artemis.jsonc)
+uv run artemis bench run-reference bench-out --serial emulator-5554 --results bench-results
+# Score: pair score per case, averaged over apps, with a 95% interval
+uv run artemis bench score --manifest bench-out/manifest.json --results <job-or-results-dir>
+```
+
+Set `ARTEMIS_BENCH_VERIFIER_TOKEN` for `export-harbor` and `serve`. Run one trial at a time per device.
+
 ## Layout
 
 | Path | What it holds |
@@ -51,7 +73,7 @@ Model keys go in `.env` (see `.env.example`). In the UI, **New run** runs select
 | `apps/research_ui/src/` | React research UI: runs, eval set, results, run detail |
 | `apps/research_ui/datasets/` | Eval set and pilot manifests |
 | `apps/research_ui/scripts/` | Device fixture bridge, dataset generator, pilot scoring and audits |
-| `artemis/` | Agent runtime: planner, operator, checker, validator, graph, device control |
+| `artemis/` | Agent runtime: the Flash loop, device control, and `artemis/bench` (benchmark device server, grader, Harbor export) |
 | `third_party/mobile_use/` | Vendored device-control layer (Apache-2.0, Minitap) |
 | `scripts/` | Emulator launcher, AndroidWorld app setup, dependency installer |
 | `docs/` | Research methods, evaluation design and setup notes |

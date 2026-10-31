@@ -312,11 +312,13 @@ Established benchmarks separate *model* comparison from *agent-system* compariso
 
 Multi-agent systems (including Artemis Pro) are allowed when reported as *model + agent*. They must use the same UI-only interface and disclose every model they call. Their scores are not mixed into the model ranking.
 
-### Changes needed in Artemis for the primary track
+### Implementation (2026-10-31)
 
-As of 2026-10-31, both profiles route element grounding to a fixed `gemini-robotics-er-2-preview` model and background step summaries to `gemini-3.5-flash-lite` (`config/artemis.jsonc`). The Operator has a `run_adb_command` tool; the Checker can run `content query`, `dumpsys` and `settings get` probes; and the diagnoser and log analyzer enable Google Search grounding. A benchmark mode must:
+The Pro multi-agent loop and the Checker are removed; Flash is the only runner. `artemis/bench` implements the primary track:
 
-1. route every model call to the model under test
-2. remove the shell, probe and search tools
-3. take the verdict from the single loop's final-answer tool, not a separate Checker
-4. log the exact loop version, prompts and settings with each run
+- **Device server** (`artemis/bench/server.py`): the bench tool set over MCP — UI actions (`click`, `click_sequence`, `long_press`, `input_text`, `swipe`, `press_key`, `manage_app` with an exact package, `wait_for_delay`), `observe_screen`, the mobile-condition tools and `submit_verdict`. No shell, app-data or web access, and no model call on the device side. Each call is a numbered step; the harness records the screen after it. Observing is free; the step budget counts actions.
+- **Grader** (`artemis/bench/grading.py`, stdlib only): §0.6 labels and scores from the run record and the hidden signature, with no model call.
+- **Harbor export** (`artemis/bench/harbor.py`): one task per case, build and repeat, declaring the device server under `[[environment.mcp_servers]]` at an opaque slot URL, with the grader and signature in `tests/`. Harbor's integrated agents (`claude-code`, `codex`, …) run against it unchanged; their built-in web search is switched off with `disable_web_search`.
+- **Reference agent** (`artemis/bench/flash.py`): Flash with `bench=True` drives the same server object in-process, binds exactly the bench tools, ends on `submit_verdict`, and turns off its step summarizer and history chunker so the model under test (the `operator` node) makes every model call.
+
+Open items: validated cases with signatures (§3), and a Harbor `BaseAgent` adapter if the reference agent should also run under `harbor run`.

@@ -57,14 +57,16 @@ from mcp.types import CallToolResult, ImageContent, TextContent
 from artemis.bench.conditions import DeviceConditions, Shell, foreground_activity
 from artemis.bench.recorder import RunRecorder, Screen, Step, VerdictAlreadySubmitted
 from artemis.mcp.action_specs import make_wire_handler, wire_dialects
-from artemis.mcp.action_types import ActionResult
+from artemis.mcp.action_types import ActionCode, ActionResult, ObserveResult
 from artemis.mcp.observation import observe as observe_impl
 from third_party.mobile_use.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-#: Device actions an agent may take. Excluded: ``open_link`` (reaches the web) and
-#: ``wait_for_text`` (a search helper, not a tester action).
+#: Device actions an agent may take: the same set Flash declares, so the reference
+#: agent and external harnesses get one surface. Excluded: ``open_link`` (reaches
+#: the web), ``wait_for_text`` (a search helper) and the wire-only text helpers
+#: ``erase_one_char`` / ``focus_and_clear_text`` (``input_text`` clears a field).
 BENCH_ACTIONS = frozenset(
     {
         "click",
@@ -75,8 +77,6 @@ BENCH_ACTIONS = frozenset(
         "press_key",
         "manage_app",
         "wait_for_delay",
-        "erase_one_char",
-        "focus_and_clear_text",
     }
 )
 
@@ -108,9 +108,10 @@ def _prefix(step: int, result: CallToolResult) -> CallToolResult:
         content[0] = TextContent(type="text", text=f"[step {step}] {content[0].text}")
     else:
         content.insert(0, TextContent(type="text", text=f"[step {step}]"))
-    return CallToolResult(
-        content=content, structuredContent=result.structuredContent, isError=result.isError
-    )
+    structured = result.structuredContent
+    if isinstance(structured, dict) and isinstance(structured.get("message"), str):
+        structured = {**structured, "message": f"[step {step}] {structured['message']}"}
+    return CallToolResult(content=content, structuredContent=structured, isError=result.isError)
 
 
 def _wrap_action(res: ActionResult) -> CallToolResult:
@@ -160,12 +161,12 @@ def build_bench_server(
                 await on_first_call()
             started.set()
 
-    async def snapshot(step: int) -> tuple[Screen, Any]:
+    async def snapshot(step: int, settle: int) -> tuple[Screen, Any]:
         """The harness's own view of the screen after ``step``."""
         screen = Screen()
         obs = None
         try:
-            obs, image = await observe_impl(ctx, controller, settle_ms=settle_ms)
+            obs, image = await observe_impl(ctx, controller, settle_ms=settle)
             if obs.ok:
                 screen.elements = obs.elements if obs.hierarchy_ok else []
                 if image:
@@ -178,9 +179,11 @@ def build_bench_server(
             screen.activity = await foreground_activity(shell)
         return screen, obs
 
-    async def record(tool: str, args: dict[str, Any], ok: bool, message: str) -> tuple[int, Any]:
+    async def record(
+        tool: str, args: dict[str, Any], ok: bool, message: str, settle: int = settle_ms
+    ) -> tuple[int, Any]:
         step = recorder.next_step()
-        screen, obs = await snapshot(step)
+        screen, obs = await snapshot(step, settle)
         recorder.record_step(
             Step(
                 step=step,
@@ -194,17 +197,26 @@ def build_bench_server(
         )
         return step, obs
 
-    def refusal() -> str | None:
-        """Why no further tool may run, or None while the run is open."""
+    def refusal(*, action: bool = True) -> str | None:
+        """Why the tool may not run, or None. Observing never spends the budget."""
         if recorder.verdict_submitted:
             return "This run is over: a verdict was already submitted."
-        if step_budget is not None and recorder.step_count >= step_budget:
-            return f"Step budget of {step_budget} used up. Call submit_verdict now."
+        if action and step_budget is not None and recorder.action_count >= step_budget:
+            return f"Action budget of {step_budget} used up. Call submit_verdict now."
         return None
 
-    def closed() -> CallToolResult | None:
-        reason = refusal()
+    def closed(*, action: bool = True) -> CallToolResult | None:
+        reason = refusal(action=action)
         return _text_result(reason, error=True) if reason else None
+
+    async def unknown_package(args: dict[str, Any]) -> str | None:
+        """manage_app takes an exact installed package, so no model resolves names."""
+        name = str(args.get("app_name") or "")
+        listing = await shell(["pm", "list", "packages"])
+        installed = {line.removeprefix("package:").strip() for line in listing.splitlines()}
+        if name in installed:
+            return None
+        return f"'{name}' is not an installed package. Pass the exact package name, e.g. org.tasks."
 
     # --- Device actions ------------------------------------------------------------
     for spec in wire_dialects():
@@ -218,6 +230,9 @@ def build_bench_server(
                     # Device tools declare an ActionResult output schema: refuse in kind.
                     return _wrap_action(ActionResult.failure(tool, reason))
                 await ensure_started()
+                if tool == "manage_app" and (reason := await unknown_package(kwargs)):
+                    step, _ = await record(tool, kwargs, False, reason)
+                    return _prefix(step, _wrap_action(ActionResult.failure(tool, reason)))
                 result = await inner(**kwargs)
                 payload = result.structuredContent or {}
                 message = result.content[0].text if result.content else ""
@@ -235,18 +250,44 @@ def build_bench_server(
     # --- Observation -----------------------------------------------------------------
 
     @mcp.tool()
-    async def observe_screen(include_screenshot: bool = True) -> CallToolResult:
+    async def observe_screen(include_image: bool = True, settle_ms: int = 400) -> CallToolResult:
         """Look at the screen: the indexed list of visible UI elements with their
         bounds and, by default, a screenshot. Bounds and every tap/swipe coordinate use
-        the same 0-1000 normalized space (x left to right, y top to bottom)."""
-        if (done := closed()) is not None:
-            return done
+        the same 0-1000 normalized space (x left to right, y top to bottom). Observing
+        does not use up the action budget."""
+        if (reason := refusal(action=False)) is not None:
+            refused = ObserveResult(
+                ok=False, code=ActionCode.INVALID_ARGS, message=reason, hierarchy_ok=False
+            )
+            return CallToolResult(
+                content=[TextContent(type="text", text=reason)],
+                structuredContent=refused.model_dump(mode="json"),
+                isError=True,
+            )
         await ensure_started()
+        settle = max(0, min(int(settle_ms), 3000))
         step, obs = await record(
-            "observe_screen", {"include_screenshot": include_screenshot}, True, ""
+            "observe_screen", {"include_image": include_image}, True, "", settle=settle
         )
         if obs is None or not obs.ok:
-            return _text_result(f"[step {step}] Could not read the screen.", error=True)
+            failed = ObserveResult(
+                ok=False,
+                code=ActionCode.DEVICE_ERROR,
+                message=f"[step {step}] Could not read the screen.",
+                hierarchy_ok=False,
+            )
+            return CallToolResult(
+                content=[TextContent(type="text", text=failed.message)],
+                structuredContent=failed.model_dump(mode="json"),
+                isError=True,
+            )
+        shot = recorder.screenshot_path(step)
+        observed = obs.model_copy(
+            update={
+                "message": f"[step {step}] {obs.message}".rstrip(),
+                "screenshot_path": str(shot) if shot.is_file() else obs.screenshot_path,
+            }
+        )
         content: list[Any] = [
             TextContent(
                 type="text",
@@ -256,8 +297,7 @@ def build_bench_server(
                 ),
             )
         ]
-        shot = recorder.screenshot_path(step)
-        if include_screenshot and shot.is_file():
+        if include_image and shot.is_file():
             import base64
 
             content.append(
@@ -267,7 +307,9 @@ def build_bench_server(
                     mimeType="image/jpeg",
                 )
             )
-        return CallToolResult(content=content, isError=False)
+        return CallToolResult(
+            content=content, structuredContent=observed.model_dump(mode="json"), isError=False
+        )
 
     # --- Mobile conditions -----------------------------------------------------------
 

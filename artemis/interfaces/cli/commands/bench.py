@@ -115,3 +115,25 @@ def score_command(
     from artemis.bench.scoring import score_results
 
     typer.echo(json.dumps(score_results(manifest, results), indent=2))
+
+
+@bench_app.command("run-reference")
+def run_reference_command(
+    export_dir: Annotated[Path, typer.Argument(help="Directory written by export-harbor.")],
+    serial: Annotated[str, typer.Option(help="Device under test, e.g. emulator-5554.")],
+    results: Annotated[Path, typer.Option(help="Where reward.json files are written.")],
+    runs_dir: Annotated[Path, typer.Option(help="Where run records are written.")] = Path(
+        "traces/bench"
+    ),
+    slot: Annotated[
+        list[str] | None, typer.Option(help="Run only these slot ids. Repeatable.")
+    ] = None,
+    timeout_sec: int = 1800,
+) -> None:
+    """Run the Flash reference agent on each exported task and grade it."""
+    from artemis.bench.reference import run_reference
+
+    summary = run_reference(
+        export_dir, serial, runs_dir, results, only=set(slot or []) or None, timeout_sec=timeout_sec
+    )
+    typer.echo(json.dumps(summary, indent=2))

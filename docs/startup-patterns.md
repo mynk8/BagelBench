@@ -58,7 +58,7 @@ Users must not need to write evaluation scripts or decision-model payloads.
 
 | Priority | Feature | Current state | Completion evidence |
 | --- | --- | --- | --- |
-| P0 | Natural-language test execution | Composer uses Pro plus checkpoint verification | A connected-device end-to-end run preserves the original case and records checks |
+| P0 | Natural-language test execution | Composer runs the Flash loop; the Pro multi-agent loop and Checker were removed on 2026-10-31 | A connected-device end-to-end run preserves the original case and records checks |
 | P0 | Case evidence report | Graph and step inspector exist | Every verdict has source links and an explicit independent-oracle status |
 | P1 | Saved test library | Run history exists; stable test versions need work | Reruns share a test ID and immutable input/criterion version |
 | P1 | Synchronized replay | Screenshot inspection exists | Selecting a graph edge seeks the corresponding recording and trace |

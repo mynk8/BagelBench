@@ -63,7 +63,7 @@ touch, typing and navigation tools, and change device conditions (rotation, proc
 death, network, permissions, font scale, dark mode) with their tools. Every tool
 result starts with a step number.
 
-You have at most {budget} steps.
+You have at most {budget} actions; observing the screen is free.
 
 ## How to answer
 
@@ -184,8 +184,14 @@ def export_harbor(
                 task_dir = tasks_dir / slot.slot_id
                 (task_dir / "environment").mkdir(parents=True, exist_ok=True)
                 (task_dir / "tests").mkdir(parents=True, exist_ok=True)
+                app_line = (
+                    f"\nThe app under test is `{case['app_package']}` (pass this package name"
+                    " to `manage_app` to launch or stop it).\n"
+                    if case.get("app_package")
+                    else ""
+                )
                 (task_dir / "instruction.md").write_text(
-                    prompt.strip() + "\n" + ANSWER_PROTOCOL.format(budget=budget),
+                    prompt.strip() + "\n" + app_line + ANSWER_PROTOCOL.format(budget=budget),
                     encoding="utf-8",
                 )
                 (task_dir / "task.toml").write_text(
