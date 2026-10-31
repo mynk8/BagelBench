@@ -25,17 +25,8 @@ CYAN='\033[0;36m'
 DIM='\033[2m'
 NC='\033[0m'
 
-AUTO_LAUNCH=false
-for arg in "$@"; do
-    case "${arg}" in
-        --launch|-l|--open)
-            AUTO_LAUNCH=true
-            ;;
-    esac
-done
-
 echo -e "${BOLD}${CYAN}======================================================${NC}"
-echo -e "${BOLD}${CYAN}   🚀 Artemis - Smart Multi-Platform Installer        ${NC}"
+echo -e "${BOLD}${CYAN}   🚀 Bagel - Smart Multi-Platform Installer        ${NC}"
 echo -e "${BOLD}${CYAN}======================================================${NC}"
 echo ""
 
@@ -50,7 +41,6 @@ STANDARD_PATHS=(
     "/usr/local/bin"
     "/usr/local/sbin"
     "${HOME}/.local/bin"
-    "${HOME}/.local/share/node/bin"
     "${HOME}/.local/share/platform-tools"
     "${HOME}/.local/share/scrcpy"
     "${HOME}/.cargo/bin"
@@ -112,27 +102,6 @@ request_sudo() {
             SUDO_DECLINED=true
             return 1
         fi
-    fi
-    return 1
-}
-
-# Helper to check if Node.js & npm meet Angular CLI 22 requirement (>= 22.22.0, >= 24.15.0, or >= 26.0.0)
-is_node_compatible() {
-    if ! has_cmd node || ! has_cmd npm; then
-        return 1
-    fi
-    local node_ver
-    node_ver="$(node -v 2>/dev/null | tr -d 'v')"
-    [ -z "${node_ver}" ] && return 1
-    local major minor
-    major="$(echo "${node_ver}" | cut -d. -f1)"
-    minor="$(echo "${node_ver}" | cut -d. -f2)"
-    if [ "${major}" -ge 26 ] 2>/dev/null; then
-        return 0
-    elif [ "${major}" -ge 24 ] 2>/dev/null; then
-        [ "${minor}" -ge 15 ] 2>/dev/null && return 0
-    elif [ "${major}" -ge 22 ] 2>/dev/null; then
-        [ "${minor}" -ge 22 ] 2>/dev/null && return 0
     fi
     return 1
 }
@@ -321,7 +290,7 @@ ensure_uv() {
     for rc in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
         if [ -f "${rc}" ]; then
             if ! grep -qs 'HOME/\.local/bin' "${rc}"; then
-                echo -e "\n# Added by Artemis installer\n${export_line}" >> "${rc}"
+                echo -e "\n# Added by Bagel installer\n${export_line}" >> "${rc}"
             fi
         fi
     done
@@ -376,35 +345,11 @@ setup_env_file() {
     fi
 }
 
-# Install the research UI's Node dependencies
-setup_research_ui() {
-    echo -e "\n${BOLD}6. Installing research UI dependencies...${NC}"
-    if has_cmd npm; then
-        npm ci --prefix "${ROOT_DIR}/apps/research_ui" && echo -e "   ${GREEN}✓ Research UI dependencies installed.${NC}"
-    else
-        echo -e "   ${YELLOW}○ npm not found; install Node.js, then run make install.${NC}"
-    fi
-}
-
-# Function to display system readiness report
+# Display host tool readiness.
 verify_readiness() {
-    echo -e "\n${BOLD}7. Toolchain Readiness Summary:${NC}"
-
-    local tools=("adb" "ffmpeg" "scrcpy" "uv" "python3" "npm")
-    for t in "${tools[@]}"; do
-        if has_cmd "$t"; then
-            local loc
-            loc="$(command -v "$t")"
-            if [ "$t" = "npm" ] && has_cmd node; then
-                local n_ver
-                n_ver="$(node -v 2>/dev/null || echo '')"
-                echo -e "   ${GREEN}✔ ${t}${NC} (${n_ver}) -> ${DIM}${loc}${NC}"
-            else
-                echo -e "   ${GREEN}✔ ${t}${NC} -> ${DIM}${loc}${NC}"
-            fi
-        else
-            echo -e "   ${YELLOW}○ ${t}${NC} -> ${YELLOW}Not found in PATH (Fallbacks active)${NC}"
-        fi
+    local tools=("adb" "ffmpeg" "scrcpy" "uv" "python3")
+    for tool in "${tools[@]}"; do
+        command -v "${tool}" || true
     done
 }
 
@@ -413,16 +358,10 @@ install_system_packages
 ensure_uv
 setup_python_env
 setup_env_file
-setup_research_ui
 verify_readiness
 
 echo -e "\n${BOLD}${CYAN}======================================================${NC}"
-echo -e "${BOLD}${GREEN}   ✨ Artemis Environment Ready!                      ${NC}"
+echo -e "${BOLD}${GREEN}   ✨ Bagel Environment Ready!                      ${NC}"
 echo -e "${BOLD}${CYAN}======================================================${NC}"
 
-if [ "${AUTO_LAUNCH}" = true ]; then
-    exec bash "${ROOT_DIR}/start.sh"
-else
-    echo -e "Start the harness with:  ${BOLD}${CYAN}make dev${NC}"
-    echo ""
-fi
+echo "Run bagel bench --help for benchmark commands."

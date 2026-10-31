@@ -27,20 +27,19 @@ if USE_CYTHON:
     print(f"USE_CYTHON: {USE_CYTHON}")
 
     extensions = []
-    src_dir = Path("artemis")
+    src_dir = Path("bagel")
 
-    # Recursively find all .py files inside the artemis/ directory for optional acceleration
+    # Recursively find all .py files inside the bagel/ directory for optional acceleration
     for py_file in src_dir.rglob("*.py"):
         rel_path = py_file.relative_to(src_dir)
-        mod_parts = ("artemis",) + rel_path.with_suffix("").parts
+        mod_parts = ("bagel",) + rel_path.with_suffix("").parts
         module_name = ".".join(mod_parts)
 
         if module_name in (
-            "artemis.__init__",
-            "artemis._legacy_imports",
-            "artemis.main",
-            "artemis.mcp.adb_server",
-            "artemis.mcp.xml_search_server",
+            "bagel.__init__",
+            "bagel.main",
+            "bagel.transports.mcp.adb_server",
+            "bagel.transports.mcp.xml_search_server",
         ):
             continue
 
@@ -56,17 +55,13 @@ setup(
     # Name and version come from pyproject.toml.
     packages=find_namespace_packages(
         include=[
-            "artemis",
-            "artemis.*",
-            "apps",
-            "apps.harness_server",
-            "apps.harness_server.*",
+            "bagel",
+            "bagel.*",
             "third_party.*",
         ],
     ),
     package_data={
-        "artemis": ["**/*.json", "**/*.md"],
-        "artemis.resources": ["config/*.jsonc"],
+        "bagel": ["**/*.json", "**/*.md"],
         # third_party has no __init__.py (namespace package), so it does not clash
         # with other distributions that also ship a third_party directory.
         "third_party.mobile_use": ["LICENSE", "NOTICE", "METADATA", "**/*.md"],

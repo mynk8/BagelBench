@@ -1,0 +1,13 @@
+version = 1
+case_id = "replace-with-private-pair-id"
+build = "correct"
+repeat = 1
+# A curator sets this only after validating both APKs, the reset and the UI symptom.
+validated = false
+# Host-side argv commands run from this task directory, before the agent starts.
+setup = []
+
+[provenance]
+app_commit = "replace-with-pinned-commit"
+apk_sha256 = "replace-with-apk-hash"
+emulator_image = "replace-with-pinned-image"

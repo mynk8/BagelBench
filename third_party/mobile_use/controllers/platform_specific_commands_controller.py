@@ -21,17 +21,17 @@ from shutil import which
 import time
 from typing import Any
 
-from artemis.context import ArtemisContext, DevicePlatform
-from third_party.mobile_use.utils.logger import ArtemisLogger, get_logger
+from bagel.device.context import BagelContext, DevicePlatform
+from third_party.mobile_use.utils.logger import BagelLogger, get_logger
 from third_party.mobile_use.utils.shell_utils import run_shell_command_on_host
 
 logger = get_logger(__name__)
 
 
-def get_adb_device(ctx: ArtemisContext) -> Any:
+def get_adb_device(ctx: BagelContext) -> Any:
     """Retrieve the ADB device instance (AdbDevice locally or RemoteAdbDevice in Cloud mode)."""
     if ctx.adb_client is None:
-        if os.environ.get("ARTEMIS_CLOUD_MODE") == "1":
+        if os.environ.get("BAGEL_CLOUD_MODE") == "1":
             from cloud_service.virtualization import RemoteAdbClient
 
             ctx.adb_client = RemoteAdbClient()
@@ -46,11 +46,11 @@ def get_adb_device(ctx: ArtemisContext) -> Any:
 
 
 def get_first_device(
-    logger: ArtemisLogger | None = None,
+    logger: BagelLogger | None = None,
 ) -> tuple[str | None, DevicePlatform | None, None]:
     """Gets the first available device, prioritizing idle and unassigned devices."""
     try:
-        from artemis.runtime import device_pool
+        from bagel.runtime import device_pool
 
         chosen = device_pool.select_device()
         if chosen:
@@ -73,7 +73,7 @@ def get_first_device(
     return None, None, None
 
 
-def get_device_date(ctx: ArtemisContext) -> str:
+def get_device_date(ctx: BagelContext) -> str:
     device = get_adb_device(ctx)
     if not device:
         return time.strftime("%Y-%m-%d %H:%M:%S")
@@ -84,7 +84,7 @@ def get_device_date(ctx: ArtemisContext) -> str:
         return time.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def list_packages(ctx: ArtemisContext) -> str:
+def list_packages(ctx: BagelContext) -> str:
     """List installed packages dynamically from the physical/remote device."""
     device = get_adb_device(ctx)
     if not device:
@@ -112,11 +112,11 @@ def list_packages(ctx: ArtemisContext) -> str:
     return "\n".join(sorted(packages))
 
 
-async def list_packages_async(ctx: ArtemisContext) -> str:
+async def list_packages_async(ctx: BagelContext) -> str:
     return list_packages(ctx)
 
 
-def get_current_foreground_package(ctx: ArtemisContext) -> str | None:
+def get_current_foreground_package(ctx: BagelContext) -> str | None:
     """Get the package name of the currently focused/foreground app dynamically."""
     device = get_adb_device(ctx)
     if not device:
@@ -147,5 +147,5 @@ def get_current_foreground_package(ctx: ArtemisContext) -> str | None:
     return None
 
 
-async def get_current_foreground_package_async(ctx: ArtemisContext) -> str | None:
+async def get_current_foreground_package_async(ctx: BagelContext) -> str | None:
     return get_current_foreground_package(ctx)

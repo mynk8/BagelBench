@@ -16,22 +16,18 @@
 # Originally from mobile-use (https://github.com/minitap-ai/mobile-use).
 # See third_party/mobile_use/METADATA for the upstream source and local modifications.
 
-"""Device-control facade base: the upstream ``UnifiedMobileController`` API.
-
-Artemis extends it as ``artemis.controllers.unified_controller.UnifiedMobileController``
-with scrcpy video recording and timeline segment extraction.
-"""
+"""Shared device-control facade over Android drivers."""
 
 from typing import Any
 
-from artemis.context import ArtemisContext
-from artemis.controllers.device_controller import ScreenDataResponse
-from artemis.drivers.base import BaseDeviceDriver
+from bagel.device.context import BagelContext
+from bagel.device.controllers.device_controller import ScreenDataResponse
+from bagel.device.drivers.base import BaseDeviceDriver
 from third_party.mobile_use.controllers.types import ElementQuery, TapOutput
 
 
 class UnifiedMobileControllerBase:
-    def __init__(self, ctx: ArtemisContext, driver: BaseDeviceDriver):
+    def __init__(self, ctx: BagelContext, driver: BaseDeviceDriver):
         self.ctx = ctx
         self._driver: BaseDeviceDriver = driver
 

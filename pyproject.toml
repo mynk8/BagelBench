@@ -13,9 +13,9 @@
 # limitations under the License.
 
 [project]
-name = "artemis"
+name = "bagelbench"
 version = "1.0"
-description = "Autonomous AI Assistant for Mobile Automation"
+description = "Android QA benchmark tools for external agent harnesses"
 
 authors = [
     { name = "Farley Wang", email="farleyw@google.com" },
@@ -24,54 +24,22 @@ authors = [
 requires-python = ">=3.12"
 
 dependencies = [
-    # Orchestration & Framework
-    "langgraph>=1.0.2,<2.0.0",
-    "langchain>=1.0.0",
-    "langchain-core>=1.0.0",
-    "langchain-community>=0.4.1",
-    "langchain-mcp-adapters>=0.2.0",
     "mcp>=1.26.0",
-    # LLM Providers & GenAI SDKs
-    "google-genai>=2.22.0",
-    "langchain-google-genai>=4.0.0",
-    "langchain-google-vertexai>=3.0.0",
-    "langchain-openai>=1.0.0",
-    # Configuration, Models & Validation
     "pydantic>=2.7.0",
     "pydantic-settings>=2.10.1",
     "python-dotenv>=1.0.1",
-    "jinja2>=3.1.5",
-    "typing-extensions>=4.12.0",
-    # Android Automation & Device Subsystem
     "adbutils>=2.12.0",
+    # adbutils imports retry for its optional screen-recording extension.
+    "retry>=0.9.2",
     "uiautomator2>=3.5.0",
-    # CLI & Rich Terminal UI
     "typer>=0.12.0",
     "rich>=13.7.0",
-    "inquirer>=3.4.0",
     "colorama>=0.4.6",
-    # Web, API & Networking
-    "fastapi>=0.111.0",
     "uvicorn[standard]>=0.30.1",
+    "starlette>=0.37.0",
     "httpx>=0.28.1",
-    "requests>=2.31.0",
-    "websockets>=12.0",
-    "sseclient-py>=1.8.0",
-    # Image, Video & Multimodal Perception
     "pillow>=10.0.0",
-    "opencv-python>=4.9.0.80",
-    "imageio-ffmpeg>=0.5.1",
-    "matplotlib>=3.8.0",
-    "numpy>=1.26.0",
-    "scipy>=1.13.0",
-    # System, Utilities & Telemetry
     "psutil>=5.9.0",
-    "retry>=0.9.2",
-    "posthog>=3.5.0",
-    "uuid-utils>=0.9.0",
-    "jupyter-client>=8.6.0",
-    "ipykernel>=6.29.0",
-    "langchain-anthropic>=1.5.4",
 ]
 
 [project.optional-dependencies]
@@ -86,8 +54,7 @@ dev = [
 ]
 
 [project.scripts]
-artemis = "artemis.interfaces.cli.main:cli"
-artemis-server = "apps.harness_server.server:main"
+bagel = "bagel.interfaces.cli.main:cli"
 
 
 [build-system]
@@ -180,14 +147,16 @@ line-ending = "auto"
 # Add project root and apps to Python path for clean absolute imports
 pythonpath = [
     ".",
-    "apps",
-    "apps/harness_server",
 ]
 
 
 # Specify test discovery patterns
 testpaths = [
-    "tests/bench",
+    "tests/benchmark",
+    "tests/device",
+    "tests/integrations",
+    "tests/transports",
+    "tests/architecture",
 ]
 python_files = [
     "*.test.py",
@@ -211,8 +180,8 @@ addopts = [
 
 markers = [
     "android: tests requiring Android device or emulator",
-    "integration: tests spanning multiple Artemis components",
-    "e2e: end-to-end tests requiring a running Artemis environment",
+    "integration: tests spanning multiple Bagel components",
+    "e2e: end-to-end tests requiring a running Bagel environment",
     "cloud: tests requiring the optional cloud_service package",
     "manual: tests that must only be launched explicitly by an operator",
 ]

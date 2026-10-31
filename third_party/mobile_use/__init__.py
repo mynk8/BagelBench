@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Parts of mobile-use (Minitap, Inc.) used by Artemis. See LICENSE and METADATA."""
+"""Parts of mobile-use (Minitap, Inc.) used by Bagel. See LICENSE and METADATA."""
 
-# artemis and these modules import each other. Import artemis first so that
-# importing one of these modules directly works the same as going through artemis.
-import artemis  # noqa: F401, E402
+# bagel and these modules import each other. Import bagel first so that
+# importing one of these modules directly works the same as going through bagel.
+import bagel  # noqa: F401, E402

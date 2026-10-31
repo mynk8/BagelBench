@@ -1,91 +1,97 @@
-# Artemis QA eval harness
+# BagelBench
 
-Can an AI agent be trusted as a QA tester? This harness measures it. An LLM agent tests real Android apps from a natural-language test and reports PASS or FAIL. We plant known faults in the app's data, and code reads the app's data before and after each run, so every verdict is scored against a known right answer.
+Bagel gives external agent harnesses, such as Codex and Claude Code, tools to test Android apps.
+The agent receives a natural-language test and uses the same device interface as every other agent.
+Its verdict is scored against verified ground truth that stays hidden throughout the run.
 
-The agent runtime is a fork of [Google Artemis](https://github.com/google/artemis); see [docs/upstream-provenance.json](docs/upstream-provenance.json) for the imported commit.
+BagelBench is derived from [Google Artemis](https://github.com/google/artemis). Upstream and vendored license notices remain intact.
 
-## How one run works
+Harbor starts the agent and runs the verifier. Bagel supplies the Android device service, evidence recording, grading, and aggregate scores.
+There is no browser application or built-in agent loop.
 
-1. **Pick a case.** One matched pair from the eval set: a control (correct record, right answer PASS) or a fault (one field broken, right answer FAIL). Both variants use the same test text.
-2. **Seed the app.** Code writes the case's records into the app's database on the emulator.
-3. **Read before.** Code reads the records back to confirm the seed landed.
-4. **Agent tests the app.** One model runs the Flash loop: each turn it sees a screenshot and the screen's text and picks one action. It ends with a verdict.
-5. **Read after.** Code reads the database again: are the target fields correct, and did nothing else change?
-6. **Score.** The agent's verdict is compared with the data read. Outcomes: correct, wrong PASS, wrong FAIL, no decision.
+## Execution
 
-Only step 4 involves models. Every screen, action, model call, dataset hash and code version is recorded under `traces/`.
-
-## Eval set
-
-600 matched pairs (1,200 cases) across nine buckets and three AndroidWorld apps: Simple Calendar Pro, Pro Expense and Broccoli. Code checks every pair: all controls come out correct and all faults come out broken. The record integrity bucket (150 pairs) runs live on the emulator.
-
-| Bucket | What the fault breaks | Pairs |
-|---|---|---|
-| Record integrity | A saved field is wrong: typo, shifted date, cut text, deleted | 150 |
-| Success signal truth | App says "Saved" but data is missing, wrong or doubled | 60 |
-| Persistence | Data lost or doubled after restart, rotation or resume | 60 |
-| Action effects | Cancel still saves, edit hits the wrong record, double save | 60 |
-| Navigation | Back, search or reopen lands on the wrong screen or record | 60 |
-| Control reachability | A button is hidden, disabled, offscreen or does nothing | 60 |
-| Visual layout | Clipped text, overlap, keyboard covers a field, tiny targets | 60 |
-| Presentation | Screen shows a stale, wrong or cut-off value | 60 |
-| Permission state | Wrong behaviour when a permission is granted or denied | 30 |
-
-Dataset files live in [apps/research_ui/datasets/androidworld/expanded_v1](apps/research_ui/datasets/androidworld/expanded_v1). Regenerate them with `uv run python apps/research_ui/scripts/generate_qa_buckets.py`; no model calls are made.
-
-## Quick start
-
-```bash
-make install        # Python and UI dependencies
-make emulator       # dedicated AndroidWorld emulator, see docs/androidworld-local-setup.md
-make dev            # backend on :8000, research UI on :5173
+```text
+Native Harbor task → Harbor agent → Bagel MCP tools → Android device
+                                          ↓
+                                 numbered actions + screens
+                                          ↓
+                         private deterministic grader → reward
 ```
 
-Model keys go in `.env` (see `.env.example`). In the UI, **New run** runs selected eval pairs end to end; **Eval set** checks all 600 pairs offline; **Results** shows accuracy, wrong PASS, wrong FAIL, no decision and pair accuracy per model, bucket and app, with 95% Wilson intervals.
+The benchmark tools expose screen observations, UI actions, controlled device conditions, and one final verdict.
+They do not expose a shell, app databases, private setup commands, or ground-truth labels.
+The device service and grader make no model calls.
 
-## Benchmark: any agent, one device interface
+PASS means the tested behavior satisfies the test. FAIL means the agent detected a defect.
+The current wire protocol represents these as `NO_DEFECT` and `DEFECT`; `INCONCLUSIVE` records an undecided run.
+A defect verdict must reference a recorded step.
 
-`artemis bench` exposes the phone to any agent through one MCP tool set: UI actions, a screen observation, mobile-condition tools (rotation, process death, network, permissions, font scale, dark mode) and a single `submit_verdict` answer. There is no shell or app-data access, and no model is called on the device side. Every call is a numbered step whose screen the harness records, and grading reads only that record and the case's hidden signature, with no model involved. The grading rule is in [docs/benchmark-task-recipe.md](docs/benchmark-task-recipe.md) §0.6.
+The current grader matches hidden screen signatures against the harness record.
+Navigation, layout, screenshot comparison, and data-integrity graders are planned extensions.
+They are not implemented by the current signature grader.
+
+The [capture journal and evaluator plan](docs/capture-journal-evaluation-plan.md) records the agreed approach and open questions for all nine QA buckets.
+
+## Run a benchmark
 
 ```bash
-# Export validated cases as Harbor tasks (plus host-side slots.json and manifest.json)
-uv run artemis bench export-harbor cases.json --out-dir bench-out \
-    --device-host-url http://10.0.0.5:8765 --allow-host api.anthropic.com
-# Serve the device to agents
-uv run artemis bench serve --slots bench-out/slots.json --serial emulator-5554 \
-    --host 0.0.0.0 --public-host 10.0.0.5
-# Any Harbor agent, e.g. Claude Code or Codex, with built-in web search off
-harbor run -p bench-out/tasks -a claude-code -m anthropic/<model> \
-    --n-concurrent 1 --ak disable_web_search=true
-# Or the Flash reference agent (model: the `operator` node in artemis.jsonc)
-uv run artemis bench run-reference bench-out --serial emulator-5554 --results bench-results
-# Score: pair score per case, averaged over apps, with a 95% interval
-uv run artemis bench score --manifest bench-out/manifest.json --results <job-or-results-dir>
+uv sync --dev
+uv run bagel doctor
+# Validate an authored, verified pair of native Harbor tasks.
+uv run bagel bench validate-tasks <dataset-dir>
+# Set BAGEL_BENCH_VERIFIER_TOKEN in the host and Harbor environments.
+uv run bagel bench serve --tasks <dataset-dir> --serial emulator-5554 \
+    --host 0.0.0.0 --public-host <device-host-ip>
+# In another terminal, with Harbor installed:
+harbor run -p <dataset-dir> -a claude-code -m anthropic/<model> \
+    --n-concurrent 1 --n-attempts 1 --ak disable_web_search=true
+uv run bagel bench score --tasks <dataset-dir> --results <harbor-job-dir>
 ```
 
-Set `ARTEMIS_BENCH_VERIFIER_TOKEN` for `export-harbor` and `serve`. Run one trial at a time per device.
+Use a device host address reachable from Harbor's containers. Configure it in each task's MCP URL and network allowlists.
+Keep credentials in ignored `.env` files. Harbor controls agent credentials; Bagel does not configure model providers.
 
-## Layout
+Use a fresh run directory and one trial at a time per device. Each authored task represents one build and repeat.
 
-| Path | What it holds |
+## Author tasks
+
+Tasks use [Harbor's native layout](templates/android-harbor), with Android metadata and private verifier files.
+There is no conversion or export step.
+Read the [Android task contract](docs/android-harbor-tasks.md) before authoring a pair.
+
+The template is unvalidated. No validated native task pairs are included yet.
+Older AndroidWorld datasets remain under `apps/research_ui/datasets/` as research artifacts.
+Their checks do not establish that a native Harbor task has been validated.
+Dataset preparation and audit scripts live under `scripts/androidworld/`.
+
+## Code
+
+| Directory | Responsibility |
 |---|---|
-| `apps/harness_server/` | FastAPI backend. Eval code is in `routers/research.py` and `services/qa_catalog.py`, `research_batch.py`, `research_trials.py`, `research_grounding.py` |
-| `apps/research_ui/src/` | React research UI: runs, eval set, results, run detail |
-| `apps/research_ui/datasets/` | Eval set and pilot manifests |
-| `apps/research_ui/scripts/` | Device fixture bridge, dataset generator, pilot scoring and audits |
-| `artemis/` | Agent runtime: the Flash loop, device control, and `artemis/bench` (benchmark device server, grader, Harbor export) |
-| `third_party/mobile_use/` | Vendored device-control layer (Apache-2.0, Minitap) |
-| `scripts/` | Emulator launcher, AndroidWorld app setup, dependency installer |
-| `docs/` | Research methods, evaluation design and setup notes |
-| `experiments/qa-pilot/` | Pilot iteration log |
-| `tests/` | Unit and integration tests |
+| `bagel/benchmark/` | Tool policy, private task slots, evidence, grading, scoring |
+| `bagel/device/` | Android actions, observations, conditions, drivers and recording |
+| `bagel/transports/` | MCP tools and HTTP task hosting |
+| `bagel/integrations/harbor.py` | Read and validate Android extensions to native Harbor tasks |
+| `bagel/interfaces/cli/` | Serve, validate, grade, score, diagnose, manage the device helper |
+| `bagel/runtime/` | Device endpoints, locks, helper lifecycle and awake leases |
+| `bagel/diagnostics/` | Host tooling and device readiness checks |
+| `templates/android-harbor/` | Native task authoring template |
+| `scripts/androidworld/` | Dataset preparation and audits |
 
-## Docs
+The [structure guide](docs/codebase-structure.md) describes dependencies and retained legacy utilities.
+Historical research documents, datasets, and run evidence remain available.
+They retain their original Artemis names and schema identifiers. The existing emulator and helper APK retain their Android identifiers.
+The Python package and CLI are `bagel`; the distribution name is `bagelbench`.
 
-- [Evaluation method](docs/android-qa-evaluation-method.md) and [benchmark design](docs/android-qa-benchmark-design.md)
-- [Pilot protocol](docs/qa-pilot-protocol.md) and [AndroidWorld setup](docs/androidworld-local-setup.md)
-- [Interpretability research methods](docs/agent-interpretability-research.md) and [startup patterns](docs/startup-patterns.md)
+## Development
 
-## License
+```bash
+uv run pytest
+uv run ruff check
+uv run ruff format --check
+uv run pyright --project pyright-core.json
+uv run python scripts/dev/check_import_names.py
+```
 
-Apache-2.0. Upstream copyright notices are retained.
+Apache-2.0. Upstream copyright and vendored license notices are retained.

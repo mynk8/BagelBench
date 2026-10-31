@@ -35,9 +35,9 @@ from PIL import Image
 from pydantic import BaseModel
 import uiautomator2 as u2
 
-from artemis.runtime.adb_endpoint import adb_command
-from artemis.runtime.awake_service import ensure_device_awake
-from artemis.utils.cython_compat import CyFunctionDetector
+from bagel.runtime.adb_endpoint import adb_command
+from bagel.runtime.awake_service import ensure_device_awake
+from bagel.utils.cython_compat import CyFunctionDetector
 from third_party.mobile_use.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -272,7 +272,7 @@ class UIAutomatorClient:
         # Ensure Maestro is not blocking us
         _ensure_maestro_not_installed(self._device_id)
 
-        # Enroll the device in the containing Artemis service lifetime before
+        # Enroll the device in the containing Bagel service lifetime before
         # UIAutomator2 reads the screen. Client disconnects do not release it.
         if self._awake_strategy is None:
             self._awake_strategy = ensure_device_awake(self._device_id)
@@ -440,7 +440,7 @@ class UIAutomatorClient:
         """Disconnect this client without ending the host's awake lifetime.
 
         ``stop_server`` also kills uiautomator2's device server. Its UiAutomation
-        connection suppresses every accessibility service (the Artemis helper
+        connection suppresses every accessibility service (the Bagel helper
         included) for as long as it lives, so a caller that prefers the helper
         must release it; the pure UIAutomator2 backend keeps it for fast reconnects.
         """

@@ -21,7 +21,6 @@
 Uses ContextVar to avoid prop drilling and maintain clean function signatures.
 """
 
-from pathlib import Path
 from typing import Any, Literal
 
 try:
@@ -34,16 +33,6 @@ except ImportError:
 
 
 from pydantic import BaseModel, ConfigDict
-
-
-class AppLaunchResult(BaseModel):
-    """Result of initial app launch attempt."""
-
-    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
-
-    locked_app_package: str
-    locked_app_initial_launch_success: bool | None
-    locked_app_initial_launch_error: str | None
 
 
 class DevicePlatform(StrEnum):
@@ -73,30 +62,6 @@ class DeviceContext(BaseModel):
             f"Device width: {self.device_width}\n"
             f"Device height: {self.device_height}\n"
         )
-
-
-class ExecutionSetupBase(BaseModel):
-    """Execution setup for a task."""
-
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        extra="allow",
-    )
-
-    traces_path: Path | None = None
-    trace_name: str | None = None
-    enable_remote_tracing: bool = False
-    app_lock_status: AppLaunchResult | None = None
-
-    def get_locked_app_package(self) -> str | None:
-        """Get the locked app package name if app locking is enabled.
-
-        Returns:
-            The locked app package name, or None if app locking is not enabled.
-        """
-        if self.app_lock_status:
-            return self.app_lock_status.locked_app_package
-        return None
 
 
 class DeviceClientAccessors:

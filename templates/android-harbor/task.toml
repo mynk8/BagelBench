@@ -1,0 +1,31 @@
+schema_version = "1.4"
+
+[task]
+name = "android/replace-with-opaque-id"
+
+[metadata.android]
+version = 1
+app = "replace-with-app-name"
+app_package = "org.example.app"
+guidance = "directed"
+action_budget = 40
+
+[agent]
+timeout_sec = 1800.0
+
+[environment]
+network_mode = "allowlist"
+# Add the selected agent's model API host. Keep the device host below.
+allowed_hosts = ["192.0.2.1"]
+
+[[environment.mcp_servers]]
+name = "android"
+transport = "streamable-http"
+url = "http://192.0.2.1:8765/t/replace-with-opaque-id/mcp"
+
+[verifier]
+timeout_sec = 120.0
+environment_mode = "separate"
+network_mode = "allowlist"
+allowed_hosts = ["192.0.2.1"]
+env = { BENCH_REWARD_URL = "http://192.0.2.1:8765/t/replace-with-opaque-id/reward", BENCH_VERIFIER_TOKEN = "${BAGEL_BENCH_VERIFIER_TOKEN}" }

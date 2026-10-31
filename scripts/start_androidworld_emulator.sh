@@ -4,7 +4,7 @@ set -euo pipefail
 sdk="${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}"
 adb="$sdk/platform-tools/adb"
 emulator="$sdk/emulator/emulator"
-avd=ArtemisAndroidWorld
+avd="${BAGEL_ANDROID_AVD:-ArtemisAndroidWorld}"
 serial=emulator-5554
 console=5554
 grpc=8554
@@ -21,9 +21,9 @@ else
   if ss -H -ltn "sport = :$console or sport = :$((console+1)) or sport = :$grpc" | grep -q .; then
     echo 'Emulator console, ADB or gRPC port is already occupied.' >&2; exit 1
   fi
-  nohup setsid "$emulator" -avd "$avd" -port "$console" -grpc "$grpc" -grpc-use-token -no-audio -no-snapshot -no-boot-anim -memory 2048 -cores 2 -gpu swiftshader_indirect "${window[@]}" > /tmp/artemis-androidworld-emulator.log 2>&1 </dev/null &
+  nohup setsid "$emulator" -avd "$avd" -port "$console" -grpc "$grpc" -grpc-use-token -no-audio -no-snapshot -no-boot-anim -memory 2048 -cores 2 -gpu swiftshader_indirect "${window[@]}" > /tmp/bagel-androidworld-emulator.log 2>&1 </dev/null &
   pid=$!
-  echo "Starting $avd (PID $pid); log: /tmp/artemis-androidworld-emulator.log"
+  echo "Starting $avd (PID $pid); log: /tmp/bagel-androidworld-emulator.log"
 fi
 for ((i=0; i<180; i++)); do
   if [[ "$("$adb" -s "$serial" get-state 2>/dev/null || true)" == device ]] && [[ "$("$adb" -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; then

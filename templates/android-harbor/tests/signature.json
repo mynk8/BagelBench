@@ -1,0 +1,9 @@
+{
+  "screen": {
+    "activity": "replace-with-recorded-activity",
+    "anchors": [{"text": "replace-with-stable-screen-anchor"}]
+  },
+  "faulty_state": [
+    {"match": {"text": "replace-with-visible-symptom"}, "present": true}
+  ]
+}

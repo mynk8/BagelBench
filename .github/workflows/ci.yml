@@ -36,30 +36,16 @@ jobs:
         run: uv sync --dev --locked
 
       - name: Lint Python
-        run: uv run ruff check apps/harness_server
+        run: uv run ruff check
 
-      - name: Check the eval set offline
-        run: uv run python -c "from apps.harness_server.services.qa_catalog import verify_reference; s = verify_reference()['summary']; assert not s['issues'] and s['control_true_count'] == s['fault_false_count'] == s['pair_count'], s"
+      - name: Check Python formatting
+        run: uv run ruff format --check
+
+      - name: Check Python types
+        run: uv run pyright --project pyright-core.json
+
+      - name: Check imported names
+        run: uv run python scripts/dev/check_import_names.py
 
       - name: Run tests
         run: uv run pytest
-
-  research-ui:
-    name: Research UI
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: apps/research_ui/package-lock.json
-
-      - name: Install and build
-        run: |
-          npm ci --prefix apps/research_ui
-          npm run build --prefix apps/research_ui

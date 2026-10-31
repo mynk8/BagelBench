@@ -2,13 +2,20 @@
   "venvPath": ".",
   "venv": ".venv",
   "include": [
-    "artemis/state.py",
-    "artemis/runtime/adb_endpoint.py",
-    "artemis/runtime/process_probe.py",
-    "artemis/mcp/action_types.py",
-    "artemis/data_engine/models.py",
-    "artemis/bench",
-    "artemis/agents/flash/runner.py"
+    "bagel/runtime/adb_endpoint.py",
+    "bagel/runtime/process_probe.py",
+    "bagel/device/results.py",
+    "bagel/data_engine/models.py",
+    "bagel/benchmark",
+    "bagel/device/conditions.py",
+    "bagel/device/factory.py",
+    "bagel/integrations/harbor.py",
+    "bagel/transports/mcp/benchmark.py",
+    "bagel/transports/http/benchmark.py",
+    "bagel/device/context.py",
+    "bagel/transports/mcp/specs.py"
   ],
-  "exclude": [".venv/**"]
+  "exclude": [
+    ".venv/**"
+  ]
 }

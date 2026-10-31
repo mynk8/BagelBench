@@ -12,6 +12,7 @@ accepted. Example:
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -51,7 +52,9 @@ def main():
         "--serial", required=True, help="Dedicated emulator serial, e.g. emulator-5554"
     )
     parser.add_argument(
-        "--avd", default="ArtemisAndroidWorld", help="Exact AVD name to verify before setup"
+        "--avd",
+        default=os.environ.get("BAGEL_ANDROID_AVD", "ArtemisAndroidWorld"),
+        help="Exact AVD name to verify before setup",
     )
     parser.add_argument("--grpc-port", type=int, default=8554)
     args = parser.parse_args()
@@ -95,7 +98,7 @@ def main():
         from android_world.env.setup_device import apps, setup
         from android_world.utils import app_snapshot
 
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "apps/research_ui/scripts"))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/androidworld"))
         from androidworld_grpc import configure_token_auth
 
         configure_token_auth(port, args.grpc_port)
