@@ -117,17 +117,6 @@ async def save_experiment_metadata(session_id: str, request: ExperimentMetadataR
     if folder.parent != Path(TRACES_PATH).resolve() or not folder.is_dir():
         raise HTTPException(status_code=404, detail="Session trace folder not found.")
     effective_switches: dict[str, bool | str] = {
-        "ARTEMIS_CHECKER_DEVICE_PROBES": os.environ.get("ARTEMIS_CHECKER_DEVICE_PROBES", "1")
-        .strip()
-        .lower()
-        not in ("0", "false", "off"),
-        "ARTEMIS_CHECKER_CLAIM_BLIND": os.environ.get("ARTEMIS_CHECKER_CLAIM_BLIND", "0")
-        .strip()
-        .lower()
-        in ("1", "true", "yes", "on"),
-        "ARTEMIS_PASS_GUARD": os.environ.get("ARTEMIS_PASS_GUARD", "0").strip().lower()
-        in ("1", "true", "yes", "on"),
-        "ARTEMIS_CHECKER_EVIDENCE_MODE": os.environ.get("ARTEMIS_CHECKER_EVIDENCE_MODE", "fused"),
         "ARTEMIS_THINKING_ENABLED": os.environ.get("ARTEMIS_THINKING_ENABLED", "0").strip().lower()
         in ("1", "true", "yes", "on"),
     }
@@ -296,16 +285,7 @@ async def export_research_run(session_id: str):
         },
         "device": {k: (session or {}).get(k) for k in ("device_serial", "device_info")},
         "switches": experiment_snapshot.get("switches")
-        or {
-            k: os.environ.get(k)
-            for k in (
-                "ARTEMIS_CHECKER_CLAIM_BLIND",
-                "ARTEMIS_PASS_GUARD",
-                "ARTEMIS_CHECKER_DEVICE_PROBES",
-                "ARTEMIS_CHECKER_EVIDENCE_MODE",
-                "ARTEMIS_THINKING_ENABLED",
-            )
-        },
+        or {k: os.environ.get(k) for k in ("ARTEMIS_THINKING_ENABLED",)},
         "independent_outcome": (checks or {}).get("run_outcome")
         or {"status": "unknown", "source": None},
         "sha256": {name: hashlib.sha256(body).hexdigest() for name, body in sorted(files.items())},

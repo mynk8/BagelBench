@@ -29,11 +29,7 @@ from artemis.clients.screen_client_factory import (
     helper_version,
     hierarchy_backend_sentence,
 )
-from artemis.config import (
-    CheckerConfig,
-    run_tuning_for_profile,
-    settings,
-)
+from artemis.config import settings
 from artemis.context import (
     ArtemisContext,
     DevicePlatform,
@@ -56,27 +52,7 @@ logger = get_logger(__name__)
 load_dotenv()
 
 
-__all__ = ["Agent", "TOutput", "attach_test_summary", "resolve_trace_suffix", "run_tuning_summary"]
-
-
-def run_tuning_summary(config: AgentConfig, profile: str | None) -> dict[str, str] | None:
-    """Per-run Pro tuning (verification level, explorer mode) for an SDK config.
-
-    The SDK config carries the Checker switches as flat flags; fold them back
-    into a :class:`CheckerConfig` so the ladder classification stays single-
-    sourced in ``artemis.config``. Returns ``None`` for Flash runs.
-    """
-    return run_tuning_for_profile(
-        profile,
-        checker=CheckerConfig(
-            enabled=not config.disable_checker,
-            midway_checks=not config.disable_midway_checks,
-            final_check=not config.disable_final_check,
-            assert_failure_policy=config.assert_failure_policy,
-        ),
-        explorer=config.explorer,
-        explorer_versions=dict(config.explorer_versions or {}),
-    )
+__all__ = ["Agent", "TOutput", "attach_test_summary", "resolve_trace_suffix"]
 
 
 class Agent(AgentBase):
@@ -298,22 +274,6 @@ class Agent(AgentBase):
             if task.request.record_trace
             else False,
             video_recording_tools_enabled=self._config.video_recording_tools_enabled,
-            disable_checker=self._config.disable_checker,
-            disable_midway_checks=self._config.disable_midway_checks,
-            disable_final_check=self._config.disable_final_check,
-            checker_max_iterations=self._config.checker_max_iterations,
-            final_check_max_attempts=self._config.final_check_max_attempts,
-            checkpoint_max_repairs=self._config.checkpoint_max_repairs,
-            max_concurrent_checkpoints=self._config.max_concurrent_checkpoints,
-            checkpoint_timeout=self._config.checkpoint_timeout,
-            settlement_timeout=self._config.settlement_timeout,
-            assert_failure_policy=self._config.assert_failure_policy,
-            disable_device_probes=self._config.disable_device_probes,
-            disable_planner_validation=self._config.disable_planner_validation,
-            enable_committee=self._config.enable_committee,
-            committee_debate_rounds=self._config.committee_debate_rounds,
-            disable_outputter=self._config.disable_outputter,
-            outputter=self._config.outputter,
             explorer=self._config.explorer,
             explorer_versions=self._config.explorer_versions,
         )
@@ -322,9 +282,6 @@ class Agent(AgentBase):
         device_data = context.device.model_dump() if context.device else {}
         if task.request.profile:
             device_data["profile"] = task.request.profile
-        run_tuning = run_tuning_summary(self._config, task.request.profile)
-        if run_tuning:
-            device_data["run_tuning"] = run_tuning
 
         target_sid = (
             self._session_id

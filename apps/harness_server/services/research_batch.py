@@ -346,9 +346,6 @@ class BatchRunner:
             "/api/run",
             {
                 "goal": current_task if frozen else framed_task(current_task, plan.framing),
-                "profile": "pro",
-                "verification_level": "checkpoints",
-                "explorer_mode": "pro",
                 "device_serial": device,
                 "experiment_switches": plan.switches,
             },

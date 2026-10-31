@@ -210,37 +210,25 @@ def ensure_daemon_running(
 def submit_task_to_daemon(
     goal: str,
     *,
-    profile: str = "flash",
     device_serial: str | None = None,
     expected_output: str | None = None,
-    enable_outputter: bool | None = None,
     locked_app_package: str | None = None,
     app_path: str | None = None,
     session_id: str | None = None,
     ingress: str = "client",
     conversation_id: str | None = None,
-    verification_level: str | None = None,
-    explorer_mode: str | None = None,
     base_url: str | None = None,
     timeout: float = 15.0,
 ) -> dict[str, Any] | None:
     """Submit a task to the running Daemon via REST API.
-
-    ``verification_level`` ('off' | 'final' | 'checkpoints' | 'strict') and
-    ``explorer_mode`` ('flash' | 'pro' | 'ultra') are the Pro-profile tuning
-    knobs of ``/api/run``; they are forwarded verbatim and ignored by Flash.
 
     Returns the response JSON dict if successfully enqueued, or None on error.
     """
     url = f"{base_url or f'http://{DEFAULT_DAEMON_HOST}:{DEFAULT_DAEMON_PORT}'}/api/run"
     payload = {
         "goal": goal,
-        "profile": profile,
         "device_serial": device_serial,
         "expected_output": expected_output,
-        "enable_outputter": enable_outputter,
-        "verification_level": verification_level,
-        "explorer_mode": explorer_mode,
         "locked_app_package": locked_app_package,
         "app_path": app_path,
         "session_id": session_id,
@@ -340,27 +328,17 @@ def get_daemon_status(
 def submit_batch_to_daemon(
     goals: list[str],
     *,
-    profile: str = "flash",
     device_serial: str | None = None,
     ingress: str = "cli",
-    verification_level: str | None = None,
-    explorer_mode: str | None = None,
     base_url: str | None = None,
     timeout: float = 15.0,
 ) -> dict[str, Any] | None:
-    """Submit a batch of goals to the running Daemon.
-
-    ``verification_level`` / ``explorer_mode`` apply to every goal of the batch
-    (see :func:`submit_task_to_daemon`).
-    """
+    """Submit a batch of goals to the running Daemon."""
     url = f"{base_url or f'http://{DEFAULT_DAEMON_HOST}:{DEFAULT_DAEMON_PORT}'}/api/run"
     payload = {
         "goals": goals,
-        "profile": profile,
         "device_serial": device_serial,
         "ingress": ingress,
-        "verification_level": verification_level,
-        "explorer_mode": explorer_mode,
     }
     try:
         data = json.dumps(payload).encode("utf-8")

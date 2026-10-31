@@ -20,12 +20,6 @@ class RunRequest(BaseModel):
     goals: list[str] | None = None
     profile: str | None = "flash"
     expected_output: str | None = None
-    enable_outputter: bool | None = None
-    # Pro-profile tuning (ignored by the Flash profile): a coarse Checker preset
-    # ('off' | 'final' | 'checkpoints' | 'strict') and the Explorer perception
-    # version used by the Operator ('flash' | 'pro' | 'ultra').
-    verification_level: str | None = None
-    explorer_mode: str | None = None
     locked_app_package: str | None = None
     app_path: str | None = None
     device_serial: str | None = None

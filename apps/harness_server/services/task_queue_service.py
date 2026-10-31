@@ -502,9 +502,6 @@ class TaskQueueService:
     ) -> tuple[list[str], dict[str, str]]:
         """Assemble the worker subprocess command line and environment."""
         expected_output = task_item.get("expected_output")
-        enable_outputter = task_item.get("enable_outputter")
-        verification_level = task_item.get("verification_level")
-        explorer_mode = task_item.get("explorer_mode")
         locked_app = task_item.get("locked_app_package") or task_item.get("locked_app")
         app_path = task_item.get("app_path")
 
@@ -513,17 +510,13 @@ class TaskQueueService:
         pythonpath_parts = [
             str(WORKSPACE_ROOT),
             str(WORKSPACE_ROOT / "apps" / "harness_server"),
-            str(WORKSPACE_ROOT / "apps" / "cloud_service"),
             env.get("PYTHONPATH", ""),
         ]
         env["PYTHONPATH"] = os.pathsep.join([p for p in pythonpath_parts if p])
         env["PYTHONUTF8"] = "1"
         env["PYTHONUNBUFFERED"] = "1"
         for key, value in (task_item.get("experiment_switches") or {}).items():
-            if key == "ARTEMIS_CHECKER_EVIDENCE_MODE":
-                env[key] = str(value)
-            else:
-                env[key] = "1" if value else "0"
+            env[key] = "1" if value else "0"
         if state.ipc_port is not None:
             env["ARTEMIS_IPC_PORT"] = str(state.ipc_port)
         if sess_id:
@@ -541,8 +534,6 @@ class TaskQueueService:
             "-m",
             "artemis.main",
             goal,
-            "--profile",
-            profile,
             "--test-name",
             test_name,
         ]
@@ -550,12 +541,6 @@ class TaskQueueService:
             cmd.extend(["--session-id", str(sess_id)])
         if expected_output:
             cmd.extend(["--output-description", str(expected_output)])
-        if enable_outputter is not None:
-            cmd.append("--enable-outputter" if enable_outputter else "--disable-outputter")
-        if verification_level:
-            cmd.extend(["--verification-level", str(verification_level)])
-        if explorer_mode:
-            cmd.extend(["--explorer-pro-mode", str(explorer_mode)])
         if locked_app:
             cmd.extend(["--locked-app", str(locked_app)])
         if app_path:
@@ -981,14 +966,11 @@ class TaskQueueService:
         single_session_id: str | None,
         profile: str,
         expected_output: str | None,
-        enable_outputter: bool | None,
         locked_app_package: str | None,
         app_path: str | None,
         device_serial: str | None,
         ingress: str,
         conversation_id: str | None,
-        verification_level: str | None = None,
-        explorer_mode: str | None = None,
         experiment_switches: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Reserve a device slot and build one pending queue item for a goal."""
@@ -1008,9 +990,6 @@ class TaskQueueService:
             "goal": goal,
             "profile": profile or "flash",
             "expected_output": expected_output,
-            "enable_outputter": enable_outputter,
-            "verification_level": verification_level,
-            "explorer_mode": explorer_mode,
             "experiment_switches": experiment_switches or {},
             "locked_app_package": locked_app_package,
             "app_path": app_path,
@@ -1030,42 +1009,21 @@ class TaskQueueService:
         goals: list[str],
         profile: str = "flash",
         expected_output: str | None = None,
-        enable_outputter: bool | None = None,
         locked_app_package: str | None = None,
         app_path: str | None = None,
         device_serial: str | None = None,
         ingress: str = "frontend",
         session_id: str | None = None,
         conversation_id: str | None = None,
-        verification_level: str | None = None,
-        explorer_mode: str | None = None,
         experiment_switches: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Enqueues one or more goals and wakes up the background worker.
-
-        ``verification_level`` and ``explorer_mode`` are Pro-profile tuning knobs
-        forwarded to the worker as ``--verification-level`` / ``--explorer-pro-mode``;
-        they are normalised here so the queue item and the CLI see one spelling.
-        """
-        verification_level = (
-            str(verification_level).strip().lower() or None if verification_level else None
-        )
-        explorer_mode = str(explorer_mode).strip().lower() or None if explorer_mode else None
-        allowed_switches = {
-            "ARTEMIS_CHECKER_DEVICE_PROBES",
-            "ARTEMIS_CHECKER_CLAIM_BLIND",
-            "ARTEMIS_PASS_GUARD",
-            "ARTEMIS_CHECKER_EVIDENCE_MODE",
-            "ARTEMIS_THINKING_ENABLED",
-        }
+        """Enqueues one or more goals and wakes up the background worker."""
+        allowed_switches = {"ARTEMIS_THINKING_ENABLED"}
         experiment_switches = experiment_switches or {}
         if set(experiment_switches) - allowed_switches:
             raise ValueError("Unsupported experiment switch.")
         for key, value in experiment_switches.items():
-            if key == "ARTEMIS_CHECKER_EVIDENCE_MODE":
-                if value not in ("fused", "tree", "screenshot"):
-                    raise ValueError("Invalid Checker evidence mode.")
-            elif not isinstance(value, bool):
+            if not isinstance(value, bool):
                 raise ValueError(f"{key} must be a boolean.")
         cls.ensure_worker_running()
 
@@ -1101,14 +1059,11 @@ class TaskQueueService:
                 single_session_id,
                 profile,
                 expected_output,
-                enable_outputter,
                 locked_app_package,
                 app_path,
                 device_serial,
                 ingress,
                 conversation_id,
-                verification_level=verification_level,
-                explorer_mode=explorer_mode,
                 experiment_switches=experiment_switches,
             )
             state.queue_items.append(task_item)

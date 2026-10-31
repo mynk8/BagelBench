@@ -19,7 +19,7 @@ import os
 from typing import Annotated
 
 from langchain_core.callbacks.base import Callbacks
-from artemis.config import checker_overrides_for_level, settings
+from artemis.config import settings
 from artemis.utils.startup_progress import publish_startup_progress
 from third_party.mobile_use.main import (
     GoalArgument,
@@ -51,18 +51,10 @@ async def execute_task(
     output_description: str | None = None,
     graph_config_callbacks: Callbacks = [],
     video_recording_tools_enabled: bool | None = None,
-    profile: str | None = None,
     app_path: str | None = None,
-    enable_planner_validation: bool | None = None,
-    enable_committee: bool | None = None,
-    enable_checker: bool | None = None,
     enable_step_summarizer: bool | None = None,
-    enable_outputter: bool | None = None,
-    force_output_synthesis: bool | None = None,
     explorer_version: str | None = None,
     explorer_flash_mode: str | None = None,
-    explorer_pro_mode: str | None = None,
-    verification_level: str | None = None,
 ) -> None:
     """Executes a single mobile automation task end-to-end.
 
@@ -74,15 +66,9 @@ async def execute_task(
         output_description: Structured natural language output description.
         graph_config_callbacks: LangGraph callback handlers.
         video_recording_tools_enabled: Whether screen video analyzer is enabled.
-        profile: Execution profile ('flash' for fast reactive loop, 'pro' for full graph).
         app_path: Optional local APK path to install prior to execution.
-        enable_planner_validation: Explicit override to enable/disable async planner validation.
-        enable_committee: Explicit override to enable/disable Multi-Agent Committee tool.
         explorer_version: Override the fallback Explorer tier ('flash', 'pro', or 'ultra').
-        explorer_flash_mode: Override the Explorer tier for the Flash execution profile.
-        explorer_pro_mode: Override the Explorer tier for the Pro execution profile.
-        verification_level: Coarse Checker preset ('off', 'final', 'checkpoints',
-            'strict'); applied before the explicit ``enable_checker`` switch.
+        explorer_flash_mode: Override the Explorer tier used by the Flash loop.
     """
     effective_sid = (
         session_id or os.getenv("ARTEMIS_SESSION_ID") or os.getenv("ARTEMIS_CLOUD_SESSION_ID")
@@ -102,37 +88,11 @@ async def execute_task(
     if video_recording_tools_enabled is not None:
         config.with_video_recording_tools(enabled=video_recording_tools_enabled)
 
-    if enable_planner_validation is not None:
-        config.with_planner_validation(enabled=enable_planner_validation)
-
-    if enable_committee is not None:
-        config.with_committee(enabled=enable_committee)
-
-    if verification_level is not None:
-        config.with_checker(**checker_overrides_for_level(verification_level))
-
-    if enable_checker is not None:
-        config.with_checker(enabled=enable_checker)
-
     if enable_step_summarizer is not None:
         config.with_flash_step_summarizer(enabled=enable_step_summarizer)
 
-    if enable_outputter is not None or force_output_synthesis is not None:
-        config.with_outputter(
-            enabled=enable_outputter if enable_outputter is not None else True,
-            force_synthesis=bool(force_output_synthesis),
-        )
-
-    if (
-        explorer_version is not None
-        or explorer_flash_mode is not None
-        or explorer_pro_mode is not None
-    ):
-        config.with_explorer(
-            version=explorer_version,
-            flash_mode=explorer_flash_mode,
-            pro_mode=explorer_pro_mode,
-        )
+    if explorer_version is not None or explorer_flash_mode is not None:
+        config.with_explorer(version=explorer_version, flash_mode=explorer_flash_mode)
 
     target_serial = (
         device_serial or settings.ADB_DEVICE_SERIAL or os.environ.get("ADB_DEVICE_SERIAL")
@@ -161,21 +121,13 @@ async def execute_task(
         test_name=test_name,
         traces_output_path_str=traces_output_path_str,
         output_description=output_description,
-        profile=profile,
+        profile="flash",
         app_path=app_path,
     )
 
 
 def run_command(
     goal: GoalArgument,
-    profile: Annotated[
-        str | None,
-        typer.Option(
-            "--profile",
-            "-p",
-            help="Execution profile ('flash' for fast reactive, 'pro' for full graph).",
-        ),
-    ] = "pro",
     locked_app_package: Annotated[
         str | None,
         typer.Option(
@@ -195,27 +147,6 @@ def run_command(
             help="Local APK path to install before starting the task.",
         ),
     ] = None,
-    enable_planner_validation: Annotated[
-        bool | None,
-        typer.Option(
-            "--enable-planner-validation/--disable-planner-validation",
-            help="Enable or disable the advisory Planner review of task plan milestone edits (hint only, never rolled back).",
-        ),
-    ] = None,
-    enable_committee: Annotated[
-        bool | None,
-        typer.Option(
-            "--enable-committee/--disable-committee",
-            help="Enable or disable Multi-Agent Committee council debate tool for Operator.",
-        ),
-    ] = None,
-    enable_checker: Annotated[
-        bool | None,
-        typer.Option(
-            "--enable-checker/--disable-checker",
-            help="Enable or disable the Checker (plan checkpoint verification and exit final review).",
-        ),
-    ] = None,
     enable_step_summarizer: Annotated[
         bool | None,
         typer.Option(
@@ -223,26 +154,12 @@ def run_command(
             help="Enable or disable Flash asynchronous objective visual step state summarizer.",
         ),
     ] = None,
-    enable_outputter: Annotated[
-        bool | None,
-        typer.Option(
-            "--enable-outputter/--disable-outputter",
-            help="Enable or disable Outputter post-execution report and structured output synthesis.",
-        ),
-    ] = None,
-    force_output_synthesis: Annotated[
-        bool | None,
-        typer.Option(
-            "--force-output-synthesis/--no-force-output-synthesis",
-            help="Force Outputter report synthesis even if no structured output schema is specified.",
-        ),
-    ] = None,
     explorer_version: Annotated[
         str | None,
         typer.Option(
             "--explorer-version",
             help=(
-                "Fallback Explorer tier when no profile knob applies: 'flash' (one-shot"
+                "Fallback Explorer tier: 'flash' (one-shot"
                 " detection), 'pro' (3-turn reasoning loop) or 'ultra' (8-turn loop with"
                 " zoom, OCR and image processing)."
             ),
@@ -252,25 +169,7 @@ def run_command(
         str | None,
         typer.Option(
             "--explorer-flash-mode",
-            help="Explorer tier behind ask_explorer under the Flash profile ('flash', 'pro', 'ultra').",
-        ),
-    ] = None,
-    explorer_pro_mode: Annotated[
-        str | None,
-        typer.Option(
-            "--explorer-pro-mode",
-            help="Explorer tier behind ask_explorer under the Pro profile ('flash', 'pro', 'ultra').",
-        ),
-    ] = None,
-    verification_level: Annotated[
-        str | None,
-        typer.Option(
-            "--verification-level",
-            help=(
-                "Checker preset for the Pro profile: 'off' (no audit), 'final' (exit review"
-                " only, the default), 'checkpoints' (every plan checkpoint + exit review),"
-                " 'strict' (checkpoints with a larger repair budget; a failed assert halts)."
-            ),
+            help="Explorer tier behind ask_explorer ('flash', 'pro', 'ultra').",
         ),
     ] = None,
     device_serial: Annotated[
@@ -327,10 +226,8 @@ def run_command(
                 )
                 resp = submit_task_to_daemon(
                     goal=goal,
-                    profile=profile or "pro",
                     device_serial=device_serial,
                     expected_output=output_description,
-                    enable_outputter=enable_outputter,
                     locked_app_package=locked_app_package,
                     app_path=app_path,
                     session_id=target_sid,
@@ -415,18 +312,10 @@ def run_command(
                 traces_output_path_str=traces_path,
                 output_description=output_description,
                 video_recording_tools_enabled=with_video_recording_tools,
-                profile=profile,
                 app_path=app_path,
-                enable_planner_validation=enable_planner_validation,
-                enable_committee=enable_committee,
-                enable_checker=enable_checker,
                 enable_step_summarizer=enable_step_summarizer,
-                enable_outputter=enable_outputter,
-                force_output_synthesis=force_output_synthesis,
                 explorer_version=explorer_version,
                 explorer_flash_mode=explorer_flash_mode,
-                explorer_pro_mode=explorer_pro_mode,
-                verification_level=verification_level,
             )
         )
     except (KeyboardInterrupt, asyncio.CancelledError):

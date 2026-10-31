@@ -129,7 +129,7 @@
   },
 
   // ------------------------------------------------------------------------------
-  // 4. Runtime Mode & Agent Capabilities Configuration (Dual-Engine: Flash vs. Pro)
+  // 4. Runtime & Agent Capabilities Configuration (Flash loop)
   // ------------------------------------------------------------------------------
   "agent": {
     // ==========================================================================
@@ -150,47 +150,7 @@
       }
     },
     // ==========================================================================
-    // 🚀 4.2 PRO Profile Options (Deep Multi-Agent Graph Closed-Loop)
-    // ==========================================================================
-    // Best for: Complex, exploratory, dynamic multi-branch tasks.
-    // Execution: LangGraph multi-node graph with a living task plan, a pre-execution safety net (single actions) / fast-action bursts (multi-action turns),
-    // execution-incident recovery handled by the Operator itself (no separate repair agent), and a read-only Checker for checkpoint verification + exit final review.
-    "pro": {
-      // 🧭 Explorer: Perception sub-agent under Pro profile ('flash', 'pro', or 'ultra')
-      "explorer": {
-        "mode": "flash" // Explorer tier for Pro nodes (Operator/Validator): 'flash' | 'pro' | 'ultra'
-      },
-      // 🎯 Planner Validation: Async verification when task plan milestones change
-      "planner_validation": {
-        "enabled": true // On by default: every milestone text change is reviewed (advisory: hint + reason only, never rolled back)
-      },
-      // 🏛️ Committee: Multi-Agent Council debate tool for Operator
-      "committee": {
-        "enabled": false,
-        "debate_rounds": 2
-      },
-      // 🔎 Checker: Plan-declared checkpoint verification (optimistic async) + exit final review
-      "checker": {
-        "enabled": true, // Master switch (compat alias): false disables both gates below
-        "midway_checks": false, // Plan-declared midway checkpoints (off in the factory layering)
-        "final_check": true, // Exit final review against the user's original goal (on by default)
-        "max_iterations": 20,
-        "final_check_max_attempts": 3,
-        "checkpoint_max_repairs": 2,
-        "max_concurrent_checkpoints": 3,
-        "checkpoint_timeout": 180.0,
-        "settlement_timeout": 120.0,
-        "assert_failure_policy": "continue", // 'continue' or 'halt' on assert failures
-        "device_probes": true // Checker's enumerated read-only device probes
-      },
-      // 🎬 Video Analyzer & Screen Recording: Continuous screen recording via scrcpy and temporal analysis
-      "video_analyzer": {
-        "enabled": true, // Whether continuous video recording and video tools are active (default: auto-detected)
-        "enable_ledger": true
-      }
-    },
-    // ==========================================================================
-    // 🌐 4.3 Shared Capabilities & Global Overrides
+    // 🌐 4.2 Shared Capabilities & Global Overrides
     // ==========================================================================
     // Shared step memory and history compression
     // Transcript ledger + layered compression for the Pro operator.

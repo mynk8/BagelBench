@@ -42,21 +42,12 @@ router = APIRouter(tags=["tasks"])
 
 @router.post("/api/run")
 async def run_task(request: RunRequest):
-    allowed_switches = {
-        "ARTEMIS_CHECKER_DEVICE_PROBES",
-        "ARTEMIS_CHECKER_CLAIM_BLIND",
-        "ARTEMIS_PASS_GUARD",
-        "ARTEMIS_CHECKER_EVIDENCE_MODE",
-        "ARTEMIS_THINKING_ENABLED",
-    }
+    allowed_switches = {"ARTEMIS_THINKING_ENABLED"}
     switches = request.experiment_switches or {}
     if set(switches) - allowed_switches:
         raise HTTPException(status_code=422, detail="Unsupported experiment switch.")
     for key, value in switches.items():
-        if key == "ARTEMIS_CHECKER_EVIDENCE_MODE":
-            if value not in ("fused", "tree", "screenshot"):
-                raise HTTPException(status_code=422, detail="Invalid Checker evidence mode.")
-        elif not isinstance(value, bool):
+        if not isinstance(value, bool):
             raise HTTPException(status_code=422, detail=f"{key} must be a boolean.")
     incoming_goals = []
     if request.goals:
@@ -159,9 +150,6 @@ async def run_task(request: RunRequest):
         incoming_goals,
         profile=request.profile or "flash",
         expected_output=request.expected_output,
-        enable_outputter=request.enable_outputter,
-        verification_level=request.verification_level,
-        explorer_mode=request.explorer_mode,
         locked_app_package=request.locked_app_package,
         app_path=request.app_path,
         device_serial=target_serial,

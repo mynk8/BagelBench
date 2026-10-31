@@ -33,7 +33,7 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from artemis.utils.video import detect_video_tools_enabled
 
 
-from artemis.config import ExplorerConfig, LLMConfig, OutputterConfig
+from artemis.config import ExplorerConfig, LLMConfig
 
 
 from third_party.mobile_use.context import (
@@ -52,46 +52,8 @@ class ExecutionSetup(ExecutionSetupBase):
     """Execution setup for a task."""
 
     video_recording_tools_enabled: bool = Field(default_factory=detect_video_tools_enabled)
-    disable_checker: bool = False
-    """Legacy master switch (compat alias): ``True`` disables BOTH the midway
-    checkpoints and the final check, regardless of the individual gates below.
-    Factory default is ``False``: the exit final review runs out of the box."""
-    disable_midway_checks: bool = True
-    """Midway checkpoints are OFF by default (factory layering: final check on,
-    planner validation on, midway checks off)."""
-    disable_final_check: bool = False
-    checker_max_iterations: int = 20
-    final_check_max_attempts: int = 3
-    checkpoint_max_repairs: int = 2
-    max_concurrent_checkpoints: int = 3
-    checkpoint_timeout: float = 180.0
-    settlement_timeout: float = 120.0
-    assert_failure_policy: Literal["continue", "halt"] = "continue"
-    disable_device_probes: bool = False
-    disable_planner_validation: bool = False
-    enable_committee: bool = False
-    committee_debate_rounds: int = 2
-    disable_outputter: bool = False
-    outputter: OutputterConfig = Field(default_factory=OutputterConfig)
     explorer: ExplorerConfig = Field(default_factory=ExplorerConfig)
     explorer_versions: dict[str, str] = Field(default_factory=dict)
-
-    @property
-    def midway_checks_enabled(self) -> bool:
-        """Midway checkpoint gate: honors both the individual switch and the
-        legacy ``disable_checker`` master alias."""
-        return not (self.disable_midway_checks or self.disable_checker)
-
-    @property
-    def final_check_enabled(self) -> bool:
-        """Final review gate: honors both the individual switch and the legacy
-        ``disable_checker`` master alias."""
-        return not (self.disable_final_check or self.disable_checker)
-
-    @property
-    def checks_enabled(self) -> bool:
-        """True when any check gate is active (drives conditional prompt assembly)."""
-        return self.midway_checks_enabled or self.final_check_enabled
 
     @property
     def explorer_version(self) -> str:
@@ -100,10 +62,6 @@ class ExecutionSetup(ExecutionSetupBase):
     @property
     def explorer_flash_mode(self) -> str:
         return self.explorer.flash_mode
-
-    @property
-    def explorer_pro_mode(self) -> str:
-        return self.explorer.pro_mode
 
     @property
     def explorer_caching(self) -> bool | None:
@@ -128,47 +86,10 @@ class ArtemisContext(DeviceClientAccessors, BaseModel):
     execution_setup: ExecutionSetup | None = None
 
     data_engine: DataEngine | None = None
-    planner_task: asyncio.Task[Any] | None = None
     background_tasks: list[asyncio.Task[Any]] = Field(default_factory=list)
     background_task_grace_period_seconds: float = 2.0
     package_cache: dict[str, str | None] = Field(default_factory=dict)
     background_jobs: dict[str, dict[str, Any]] = Field(default_factory=dict)
-
-    pending_checkpoints: list[Any] = Field(default_factory=list)
-    """Queued :class:`~artemis.graph.checkpoints.PendingCheckpoint` entries.
-    ``_process_plan_write`` only enqueues; ``execution_check_node`` spawns after
-    the turn's step is recorded so the evidence anchor points at a real step."""
-    checkpoint_tasks: dict[str, Any] = Field(default_factory=dict)
-    """checkpoint_id -> (attempt_id, asyncio.Task). One in-flight attempt per
-    checkpoint; supersede harvests/cancels the old entry before replacing it."""
-    checkpoint_attempt_seq: dict[str, int] = Field(default_factory=dict)
-    """checkpoint_id -> monotonically increasing attempt counter."""
-    checkpoint_repairs: dict[str, int] = Field(default_factory=dict)
-    """checkpoint_id -> number of verify-fail repairs already applied."""
-    assert_halt: bool = False
-    """Latched by an assert failure under ``assert_failure_policy='halt'``."""
-    final_check_attempts: int = 0
-    """Number of final-check passes already executed at exit settlement."""
-
-    last_validated_plan: str | None = None
-    """Ratchet baseline for planner validation: the last plan content whose
-    top-level milestones were validated (or the initial plan). Drift is always
-    judged against this, never against the immediately preceding write."""
-    pending_validated_plan: str | None = None
-    """Plan content currently under async planner validation; becomes the new
-    baseline when the validator approves it."""
-
-    guidance_unprotected_checks: set[tuple[str, str]] = Field(default_factory=set)
-    """``(kind, text)`` of every check line that existed in the task plan when a
-    mid-run user instruction arrived. User guidance outranks the plan's declared
-    standards, so these lines lose their machine restoration for the rest of the
-    run (the Operator may drop or reword them at any later write); check lines
-    added afterwards stay protected until the next instruction."""
-    guidance_retired_checks: set[tuple[str, str]] = Field(default_factory=set)
-    """``(kind, text)`` of the check lines the Operator actually dropped under
-    that waiver. A verdict recorded for such a line before it was retired is a
-    result for a requirement the user withdrew: the run outcome reports it as
-    retired instead of counting it as a pass or failure."""
 
     _genai_client: Any | None = PrivateAttr(default=None)
     _video_blackboard: Any | None = PrivateAttr(default=None)
@@ -187,13 +108,13 @@ class ArtemisContext(DeviceClientAccessors, BaseModel):
     step_memory: Any | None = None
     """Shared :class:`~artemis.memory.step_memory.StepMemoryService` composition
     root (history redesign §6.2). Created on first use via
-    ``artemis.memory.ensure_step_memory``; Flash and Pro profiles share one
-    instance so summary jobs, retries, and flush semantics are unified."""
+    ``artemis.memory.ensure_step_memory``; one instance per run so summary
+    jobs, retries, and flush semantics are unified."""
 
     transcript_ledger: Any | None = None
-    """Session :class:`~artemis.memory.transcript.TranscriptLedger` for the Pro
-    operator's transcript prompt path (``agent.memory.transcript.enabled``).
-    Lives beside ``step_memory``; the State never carries message payloads."""
+    """Session :class:`~artemis.memory.transcript.TranscriptLedger` for the Flash
+    loop's transcript prompt. Lives beside ``step_memory``; the State never
+    carries message payloads."""
 
     async def __aenter__(self) -> ArtemisContext:
         return self

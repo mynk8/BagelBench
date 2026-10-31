@@ -137,194 +137,6 @@ class VideoAnalyzerConfig(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class PlannerValidationConfig(BaseModel):
-    """Configuration specific to Planner validation of milestone changes."""
-
-    enabled: bool = Field(
-        default=True,
-        description=(
-            "Whether every top-level milestone text change is reviewed by the"
-            " lightweight async planner validator. The review is advisory: a"
-            " flagged change is never rolled back, the Operator only receives"
-            " the concern and its reason as feedback."
-        ),
-    )
-    model_config = {"extra": "allow"}
-
-
-class CommitteeConfig(BaseModel):
-    """Configuration specific to Multi-Agent Committee / Council."""
-
-    enabled: bool = Field(
-        default=False,
-        description="Whether to equip Operator with the ask_committee tool.",
-    )
-    debate_rounds: int = Field(
-        default=2,
-        ge=1,
-        le=5,
-        description="Number of debate rounds among council members (1-5).",
-    )
-    model_config = {"extra": "allow"}
-
-
-class CheckerConfig(BaseModel):
-    """Configuration for plan-driven checkpoint verification and the final review."""
-
-    enabled: bool = Field(
-        default=True,
-        description=(
-            "Master switch (compat alias): False disables BOTH midway"
-            " checkpoints and the final check."
-        ),
-    )
-    midway_checks: bool = Field(
-        default=False,
-        description=(
-            "Whether plan-declared midway checkpoints run (requires enabled=True)."
-            " Off in the factory layering: final check on, midway checks off."
-        ),
-    )
-    final_check: bool = Field(
-        default=True,
-        description="Whether the exit final review runs (requires enabled=True).",
-    )
-    max_iterations: int = Field(
-        default=20,
-        ge=1,
-        le=50,
-        description="Maximum verification iterations for Checker LLM reasoning and inspection.",
-    )
-    final_check_max_attempts: int = Field(
-        default=3,
-        ge=1,
-        le=10,
-        description="Maximum final-review attempts before ending with a blocked outcome.",
-    )
-    checkpoint_max_repairs: int = Field(
-        default=2,
-        ge=0,
-        le=10,
-        description="Per-checkpoint repair quota for failed verify criteria.",
-    )
-    max_concurrent_checkpoints: int = Field(
-        default=3,
-        ge=1,
-        le=10,
-        description="Maximum concurrently running checkpoint attempts.",
-    )
-    checkpoint_timeout: float = Field(
-        default=180.0,
-        gt=0,
-        description="Per-attempt timeout (seconds) for one checkpoint check.",
-    )
-    settlement_timeout: float = Field(
-        default=120.0,
-        gt=0,
-        description="Aggregate timeout (seconds) for the exit settlement barrier.",
-    )
-    assert_failure_policy: Literal["continue", "halt"] = Field(
-        default="continue",
-        description="Whether an assert failure lets execution continue or halts the run.",
-    )
-    device_probes: bool = Field(
-        default=True,
-        description="Whether the Checker's enumerated read-only device probes are registered.",
-    )
-    model_config = {"extra": "allow"}
-
-
-#: Coarse verification presets exposed to the CLI (``--verification-level``)
-#: and the harness server (``verification_level`` on ``/api/run``). Each preset
-#: is a partial :class:`CheckerConfig` override; unspecified fields keep the
-#: values from ``artemis.jsonc``. ``final`` mirrors the factory layering.
-VerificationLevel = Literal["off", "final", "checkpoints", "strict"]
-DEFAULT_VERIFICATION_LEVEL: VerificationLevel = "final"
-VERIFICATION_LEVEL_PRESETS: dict[str, dict[str, Any]] = {
-    # No Checker at all: the Operator self-reports completion, nothing audits it.
-    "off": {"enabled": False},
-    # Factory layering: one exit audit against the user's goal, no midway checkpoints.
-    "final": {"enabled": True, "midway_checks": False, "final_check": True},
-    # Every plan-declared checkpoint runs at its subgoal's completion, plus the exit audit.
-    "checkpoints": {"enabled": True, "midway_checks": True, "final_check": True},
-    # Checkpoints + exit audit with a larger repair budget; a failed assert halts the run.
-    "strict": {
-        "enabled": True,
-        "midway_checks": True,
-        "final_check": True,
-        "assert_failure_policy": "halt",
-        "checkpoint_max_repairs": 4,
-        "final_check_max_attempts": 5,
-        "max_iterations": 30,
-    },
-}
-
-
-def checker_overrides_for_level(level: str | None) -> dict[str, Any]:
-    """Return the :class:`CheckerConfig` field overrides for a verification level.
-
-    Args:
-        level: One of ``off``, ``final``, ``checkpoints`` or ``strict``
-            (case-insensitive, surrounding whitespace ignored).
-
-    Raises:
-        ValueError: when ``level`` is not a known preset.
-    """
-    key = str(level or "").strip().lower()
-    preset = VERIFICATION_LEVEL_PRESETS.get(key)
-    if preset is None:
-        known = ", ".join(VERIFICATION_LEVEL_PRESETS)
-        raise ValueError(f"Unknown verification level {level!r}; expected one of: {known}")
-    return dict(preset)
-
-
-def verification_level_for_checker(checker: "CheckerConfig") -> VerificationLevel:
-    """Classify an effective :class:`CheckerConfig` back onto the coarse ladder.
-
-    Used by launcher UIs to show where the configured defaults sit; the inverse of
-    :func:`checker_overrides_for_level` for the fields the presets control.
-    """
-    if not checker.enabled or (not checker.midway_checks and not checker.final_check):
-        return "off"
-    if checker.midway_checks:
-        return "strict" if checker.assert_failure_policy == "halt" else "checkpoints"
-    return "final"
-
-
-def run_tuning_for_profile(
-    profile: str | None,
-    *,
-    checker: "CheckerConfig",
-    explorer: "ExplorerConfig",
-    explorer_versions: dict[str, str] | None = None,
-) -> dict[str, str] | None:
-    """Return Pro verification and explorer settings for session metadata.
-
-    Flash has no per-run tuning and returns None.
-    """
-    key = str(profile or "").strip().lower()
-    if key != "pro":
-        return None
-    return {
-        "verification_level": verification_level_for_checker(checker),
-        "explorer_mode": explorer.resolve(profile="pro", per_agent_overrides=explorer_versions),
-    }
-
-
-class OutputterConfig(BaseModel):
-    """Configuration specific to Outputter post-execution report synthesis agent."""
-
-    enabled: bool = Field(
-        default=True,
-        description="Whether Outputter agent is mounted for post-execution report/structured output synthesis.",
-    )
-    force_synthesis: bool = Field(
-        default=False,
-        description="Whether to force Outputter synthesis even when no structured schema is explicitly requested.",
-    )
-    model_config = {"extra": "allow"}
-
-
 class ExplorerConfig(BaseModel):
     """Configuration specific to UI Explorer visual sub-agent (Flash / Pro / Ultra)."""
 
@@ -780,80 +592,6 @@ class FlashProfileConfig(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class ProExplorerConfig(BaseModel):
-    """Explorer perception settings under Pro profile."""
-
-    mode: ExplorerVersion = Field(
-        default="flash",
-        description="Explorer perception mode under Pro profile ('flash', 'pro', or 'ultra').",
-    )
-    caching: bool = Field(
-        default=True,
-        description="Whether to enable context caching for multi-turn Pro/Ultra exploration.",
-    )
-    model_config = {"extra": "allow"}
-
-
-class ExecutionConfig(BaseModel):
-    """Validator execution tiers for the Pro profile."""
-
-    max_burst_actions: int = Field(
-        default=4,
-        ge=2,
-        le=10,
-        description=(
-            "Maximum turn-ending actions the Operator may chain into one fast-action"
-            " burst (executed back to back without the safety net). A longer turn is"
-            " rejected before execution and fed back to the Operator."
-        ),
-    )
-    plan_ledger_gate: bool = Field(
-        default=True,
-        description=(
-            "Require active plan sub-goals and periodically prompt the Operator to"
-            " update stale plan progress."
-        ),
-    )
-    plan_ledger_stale_turns: int = Field(
-        default=4,
-        ge=0,
-        description=(
-            "Action turns allowed without a task_plan change before the ledger gate"
-            " prompts for an update. Set to 0 to disable staleness checks."
-        ),
-    )
-
-
-class ProProfileConfig(BaseModel):
-    """Configuration options specific to the 🚀 Pro execution profile (LangGraph / Multi-Agent Closed-Loop)."""
-
-    execution: ExecutionConfig = Field(
-        default_factory=ExecutionConfig,
-        description="Validator execution tiers (vetted single action vs fast-action burst).",
-    )
-    explorer: ProExplorerConfig = Field(
-        default_factory=ProExplorerConfig,
-        description="Explorer perception settings for Pro profile.",
-    )
-    planner_validation: PlannerValidationConfig = Field(
-        default_factory=PlannerValidationConfig,
-        description="Planner milestone consistency validation settings.",
-    )
-    committee: CommitteeConfig = Field(
-        default_factory=CommitteeConfig,
-        description="Multi-Agent Committee council debate settings.",
-    )
-    checker: CheckerConfig = Field(
-        default_factory=CheckerConfig,
-        description="Checker checkpoint verification and exit final review settings.",
-    )
-    video_analyzer: VideoAnalyzerConfig = Field(
-        default_factory=VideoAnalyzerConfig,
-        description="Screen video action ledger tracking settings.",
-    )
-    model_config = {"extra": "allow"}
-
-
 class AgentGlobalConfig(BaseModel):
     """Global configuration parsed from artemis.jsonc / agent_config.json."""
 
@@ -861,10 +599,6 @@ class AgentGlobalConfig(BaseModel):
     flash: FlashProfileConfig = Field(
         default_factory=FlashProfileConfig,
         description="Options for ⚡ Flash reactive runner execution.",
-    )
-    pro: ProProfileConfig = Field(
-        default_factory=ProProfileConfig,
-        description="Options for 🚀 Pro multi-agent graph execution.",
     )
 
     # 🌐 Core Component Configurations
@@ -879,22 +613,6 @@ class AgentGlobalConfig(BaseModel):
             ' {"validator": "ultra"}). Empty by default so that'
             " ``explorer.flash_mode`` / ``explorer.pro_mode`` decide."
         ),
-    )
-    planner_validation: PlannerValidationConfig = Field(
-        default_factory=PlannerValidationConfig,
-        description="Planner milestone validation runtime options.",
-    )
-    committee: CommitteeConfig = Field(
-        default_factory=CommitteeConfig,
-        description="Committee council runtime options.",
-    )
-    checker: CheckerConfig = Field(
-        default_factory=CheckerConfig,
-        description="Checker checkpoint verification and exit final review runtime options.",
-    )
-    outputter: OutputterConfig = Field(
-        default_factory=OutputterConfig,
-        description="Outputter synthesis agent runtime options.",
     )
     denylisted_tools: dict[str, list[str]] = Field(
         default_factory=dict,
@@ -913,59 +631,21 @@ class AgentGlobalConfig(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def synchronize_profiles_and_components(cls, data: Any) -> Any:
-        """Bidirectionally synchronize between categorized 'flash'/'pro' blocks and component fields."""
+    def apply_legacy_keys_and_env(cls, data: Any) -> Any:
+        """Map legacy ``flash`` keys onto their components and apply env overrides."""
         if not isinstance(data, dict):
             return data
 
-        # 1. Sync from pro block to root components if provided
-        if "pro" in data and isinstance(data["pro"], dict):
-            pro_data = data["pro"]
-            if "checker" in pro_data and "checker" not in data:
-                data["checker"] = pro_data["checker"]
-            if "committee" in pro_data and "committee" not in data:
-                data["committee"] = pro_data["committee"]
-            if "planner_validation" in pro_data and "planner_validation" not in data:
-                data["planner_validation"] = pro_data["planner_validation"]
-            if "video_analyzer" in pro_data and "video_analyzer" not in data:
-                data["video_analyzer"] = pro_data["video_analyzer"]
-            if "explorer" in pro_data and isinstance(pro_data["explorer"], dict):
-                exp_pro = pro_data["explorer"]
-                if "explorer" not in data:
-                    data["explorer"] = {}
-                if isinstance(data["explorer"], dict):
-                    if "mode" in exp_pro and "pro_mode" not in data["explorer"]:
-                        data["explorer"]["pro_mode"] = exp_pro["mode"]
-                    if "caching" in exp_pro and "caching" not in data["explorer"]:
-                        data["explorer"]["caching"] = exp_pro["caching"]
+        # ``flash.explorer_mode`` seeds ``explorer.flash_mode`` when that is unset.
+        flash_block = data.get("flash")
+        if isinstance(flash_block, dict) and "explorer_mode" in flash_block:
+            explorer_block = data.setdefault("explorer", {})
+            if isinstance(explorer_block, dict):
+                explorer_block.setdefault("flash_mode", flash_block["explorer_mode"])
 
-        # 2. Sync from flash block to explorer.flash_mode
-        if "flash" in data and isinstance(data["flash"], dict):
-            flash_data = data["flash"]
-            if "explorer_mode" in flash_data:
-                if "explorer" not in data:
-                    data["explorer"] = {}
-                if isinstance(data["explorer"], dict) and "flash_mode" not in data["explorer"]:
-                    data["explorer"]["flash_mode"] = flash_data["explorer_mode"]
-
-        # 3. Sync from root components to pro/flash blocks if pro/flash block is omitted
-        if "checker" in data and ("pro" not in data or "checker" not in data.get("pro", {})):
-            data.setdefault("pro", {})["checker"] = data["checker"]
-        if "committee" in data and ("pro" not in data or "committee" not in data.get("pro", {})):
-            data.setdefault("pro", {})["committee"] = data["committee"]
-        if "planner_validation" in data and (
-            "pro" not in data or "planner_validation" not in data.get("pro", {})
-        ):
-            data.setdefault("pro", {})["planner_validation"] = data["planner_validation"]
-        if "video_analyzer" in data and (
-            "pro" not in data or "video_analyzer" not in data.get("pro", {})
-        ):
-            data.setdefault("pro", {})["video_analyzer"] = data["video_analyzer"]
-
-        # 3b. Legacy alias: an explicit flash.step_summarizer.retry_limit keeps
+        # Legacy alias: an explicit flash.step_summarizer.retry_limit keeps
         # working by seeding memory.runtime.retry_limit when the new key is
         # absent (an explicit new key wins over the legacy one).
-        flash_block = data.get("flash")
         flash_ss = flash_block.get("step_summarizer") if isinstance(flash_block, dict) else None
         if isinstance(flash_ss, dict) and "retry_limit" in flash_ss:
             mem_block = data.setdefault("memory", {})
@@ -974,7 +654,6 @@ class AgentGlobalConfig(BaseModel):
                 if isinstance(runtime_block, dict):
                     runtime_block.setdefault("retry_limit", flash_ss["retry_limit"])
 
-        # 4. Environment variable overrides (highest precedence for runtime switches)
         def _parse_bool(var_name: str) -> bool | None:
             v = os.getenv(var_name)
             if v is None:
@@ -986,36 +665,15 @@ class AgentGlobalConfig(BaseModel):
                 return False
             return None
 
-        chk_env = _parse_bool("ARTEMIS_CHECKER_ENABLED")
-        if chk_env is not None:
-            data.setdefault("checker", {})["enabled"] = chk_env
-            data.setdefault("pro", {}).setdefault("checker", {})["enabled"] = chk_env
-
-        comm_env = _parse_bool("ARTEMIS_COMMITTEE_ENABLED")
-        if comm_env is not None:
-            data.setdefault("committee", {})["enabled"] = comm_env
-            data.setdefault("pro", {}).setdefault("committee", {})["enabled"] = comm_env
-
-        pv_env = _parse_bool("ARTEMIS_PLANNER_VALIDATION_ENABLED")
-        if pv_env is not None:
-            data.setdefault("planner_validation", {})["enabled"] = pv_env
-            data.setdefault("pro", {}).setdefault("planner_validation", {})["enabled"] = pv_env
-
-        out_env = _parse_bool("ARTEMIS_OUTPUTTER_ENABLED")
-        if out_env is not None:
-            data.setdefault("outputter", {})["enabled"] = out_env
-
         vid_rec_env = _parse_bool("ARTEMIS_VIDEO_RECORDING_ENABLED") or _parse_bool(
             "ARTEMIS_WITH_VIDEO_RECORDING_TOOLS"
         )
         if vid_rec_env is not None:
             data.setdefault("video_analyzer", {})["enabled"] = vid_rec_env
-            data.setdefault("pro", {}).setdefault("video_analyzer", {})["enabled"] = vid_rec_env
 
         vid_env = _parse_bool("ARTEMIS_VIDEO_LEDGER_ENABLED")
         if vid_env is not None:
             data.setdefault("video_analyzer", {})["enable_ledger"] = vid_env
-            data.setdefault("pro", {}).setdefault("video_analyzer", {})["enable_ledger"] = vid_env
 
         return data
 

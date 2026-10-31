@@ -22,11 +22,7 @@ type Mode = 'pair' | 'pilot' | 'written'
 
 const CONDITIONS = [
   { id: 'baseline', label: 'Baseline', switches: {} },
-  { id: 'claim_blind', label: 'Checker blind to claims', switches: { ARTEMIS_CHECKER_CLAIM_BLIND: true } },
-  { id: 'pass_guard', label: 'Evidence required for PASS', switches: { ARTEMIS_PASS_GUARD: true } },
-  { id: 'probes_off', label: 'No device probes', switches: { ARTEMIS_CHECKER_DEVICE_PROBES: false } },
-  { id: 'tree_only', label: 'Screen tree only', switches: { ARTEMIS_CHECKER_EVIDENCE_MODE: 'tree' } },
-  { id: 'screenshot_only', label: 'Screenshot only', switches: { ARTEMIS_CHECKER_EVIDENCE_MODE: 'screenshot' } },
+  { id: 'thinking', label: 'Model thinking on', switches: { ARTEMIS_THINKING_ENABLED: true } },
 ]
 const BATCH_LIMIT = 600
 const ALL = '__all__'
