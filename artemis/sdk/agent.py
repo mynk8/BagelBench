@@ -40,7 +40,7 @@ from artemis.context import (
     ExecutionSetup,
 )
 from artemis.data_engine.engine import DataEngine
-from artemis.graph.state import State
+from artemis.state import State
 from artemis.runtime import trace_store
 from artemis.runtime.cancel_requests import watch_for_cancel_request
 from artemis.sdk.run_outcome import attach_test_summary, resolve_trace_suffix

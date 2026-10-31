@@ -28,7 +28,7 @@ from langgraph.prebuilt import InjectedState
 from artemis.core.tool_failure import is_tool_failure
 from artemis.data_engine import engine as engine_mod
 from artemis.data_engine.trace import CURRENT_TRACE_ID, smart_serialize
-from artemis.graph.state import State
+from artemis.state import State
 from third_party.mobile_use.tools.tool_wrapper import CompositeToolWrapper, ToolWrapper
 
 __all__ = [

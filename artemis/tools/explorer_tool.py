@@ -55,7 +55,7 @@ from artemis.agents.explorer.tiers import get_tier
 from artemis.config import ExplorerVersion, resolve_explorer_version, settings
 from artemis.context import ArtemisContext
 from artemis.drivers.base import BaseDeviceDriver
-from artemis.graph.state import State
+from artemis.state import State
 from artemis.tools.base import ArtemisTool, ToolCategory
 from artemis.tools.tool_wrapper import ToolWrapper
 from artemis.utils.cython_compat import CyFunctionDetector

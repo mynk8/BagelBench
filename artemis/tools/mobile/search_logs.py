@@ -22,7 +22,7 @@ from artemis.core.tool_failure import ToolFailure
 from artemis.context import ArtemisContext
 from artemis.data_engine.trace import trace_langchain_tool
 from artemis.drivers.base import BaseDeviceDriver
-from artemis.graph.state import State
+from artemis.state import State
 from artemis.tools.base import ArtemisTool, ToolCategory
 from artemis.tools.mobile.log_utils import fetch_and_filter_logs
 from third_party.mobile_use.utils.logger import get_logger

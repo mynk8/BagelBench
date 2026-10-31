@@ -44,7 +44,7 @@ from artemis.agents.explorer.tiers import SUBMIT_TOOL, ExplorerTier
 from artemis.agents.object_detector.object_detector import _run_object_detection
 from artemis.config import settings
 from artemis.data_engine.storage import StorageManager
-from artemis.graph.state import State
+from artemis.state import State
 from artemis.utils.ocr_api import is_ocr_configured, perform_ocr
 from artemis.utils.ocr_xml_fusion import fuse_ocr_with_xml
 from artemis.utils.visualization import draw_dots, format_minimal_list_with_elements

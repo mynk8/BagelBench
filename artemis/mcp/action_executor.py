@@ -45,7 +45,7 @@ from artemis.mcp.action_specs import exception_prefix
 from artemis.mcp.action_session import ActionSession, get_action_session
 from artemis.mcp.action_types import ActionCode, ActionResult
 from artemis.mcp.actuators.adb import AdbActuator
-from artemis.agents.validator.tool_declarations import (
+from artemis.agents.flash.tool_declarations import (
     ToolExecutionResult,
     normalize_coordinate_target,
 )

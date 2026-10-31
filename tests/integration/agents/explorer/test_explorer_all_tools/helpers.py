@@ -18,7 +18,7 @@ from pathlib import Path
 from PIL import Image
 from unittest.mock import MagicMock
 from artemis.context import ArtemisContext
-from artemis.graph.state import State
+from artemis.state import State
 
 
 def create_mock_context() -> MagicMock:

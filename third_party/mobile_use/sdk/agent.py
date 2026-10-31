@@ -45,14 +45,12 @@ from PIL import Image
 from pydantic import BaseModel
 
 from artemis.agents.flash.runner import FlashRunner
-from artemis.agents.outputter.outputter import outputter
 from artemis.clients.screen_client_factory import (
     ScreenClient,
     create_screen_client,
 )
 from artemis.config import (
     OutputConfig,
-    record_events,
 )
 from artemis.constants import RECURSION_LIMIT
 from artemis.context import (
@@ -62,11 +60,8 @@ from artemis.context import (
     ExecutionSetup,
 )
 from artemis.controllers.controller_factory import get_controller
-from artemis.data_engine.trace import DataEngineCallbackHandler
-from artemis.graph.graph import get_graph
-from artemis.graph.state import State
 from artemis.runtime import DeviceExecutionLock
-from artemis.sdk.run_outcome import attach_test_summary, resolve_trace_suffix
+from artemis.sdk.run_outcome import resolve_trace_suffix
 from artemis.sdk.types.agent import AgentConfig
 from artemis.utils.startup_progress import publish_startup_progress
 from third_party.mobile_use.controllers.platform_specific_commands_controller import (
@@ -449,13 +444,11 @@ class AgentBase:
             )
             logger.info(str(output_config))
 
-        logger.info(f"[{task_name}] Starting graph with goal: `{request.goal}`")
+        logger.info(f"[{task_name}] Starting run with goal: `{request.goal}`")
         state = self._get_graph_state(task=task)
-        graph_input = state.model_dump()
         datetime.now(UTC)
 
         async def _execute_task_logic():
-            last_state: State | None = None
             last_state_snapshot: dict | None = None
             output = None
             effective_mode = getattr(self._config, "concurrency_mode", "per_device")
@@ -558,136 +551,44 @@ class AgentBase:
                         "environment_ready", "Device environment is ready", session_id=str(sess_id)
                     )
                     try:
-                        if request.profile and request.profile.lower() == "flash":
-                            logger.info(f"[{task_name}] Invoking FlashRunner reactive loop...")
-                            await task.set_status(
-                                status="running",
-                                message="Invoking FlashRunner...",
-                            )
+                        logger.info(f"[{task_name}] Invoking FlashRunner reactive loop...")
+                        await task.set_status(
+                            status="running",
+                            message="Invoking FlashRunner...",
+                        )
 
-                            # An explicit max_steps caps the reactive loop; the
-                            # default leaves the cap to agent.flash.max_turns
-                            # (0 = unlimited).
-                            max_turns = (
-                                request.max_steps if request.max_steps != RECURSION_LIMIT else None
-                            )
-                            runner = FlashRunner(context, goal=request.goal, max_turns=max_turns)
-                            flash_result = await runner.run(state)
+                        # An explicit max_steps caps the reactive loop; the
+                        # default leaves the cap to agent.flash.max_turns
+                        # (0 = unlimited).
+                        max_turns = (
+                            request.max_steps if request.max_steps != RECURSION_LIMIT else None
+                        )
+                        runner = FlashRunner(context, goal=request.goal, max_turns=max_turns)
+                        flash_result = await runner.run(state)
 
-                            output = flash_result
-                            last_state_snapshot = state.model_dump()
+                        output = flash_result
+                        last_state_snapshot = state.model_dump()
 
-                            status = flash_result.get("status")
-                            if status == "completed":
-                                logger.info(f"✅ Automation '{task_name}' is success ✅")
-                                await task.finalize(content=output, state=last_state_snapshot)
-                                if context.data_engine:
-                                    context.data_engine.end_session("completed")
-                            else:
-                                err = (
-                                    f"[{task_name}] FlashRunner failed:"
-                                    f" {flash_result.get('explanation')}"
-                                )
-                                logger.warning(err)
-                                await task.finalize(
-                                    content=output,
-                                    state=last_state_snapshot,
-                                    error=err,
-                                )
-                                if context.data_engine:
-                                    context.data_engine.end_session("failed")
-                            return output
-                        else:
-                            logger.info(f"[{task_name}] Invoking graph with input: {graph_input}")
-                            await task.set_status(status="running", message="Invoking graph...")
-                            async for chunk in (await get_graph(context)).astream(
-                                input=graph_input,
-                                config={
-                                    "recursion_limit": task.request.max_steps,
-                                    "callbacks": (
-                                        (
-                                            list(self._config.graph_config_callbacks)
-                                            if self._config.graph_config_callbacks is not None
-                                            else []
-                                        )
-                                        + [DataEngineCallbackHandler(context)]
-                                        if context.data_engine
-                                        else self._config.graph_config_callbacks
-                                    ),
-                                },
-                                stream_mode=[
-                                    "messages",
-                                    "custom",
-                                    "updates",
-                                    "values",
-                                ],
-                            ):
-                                stream_mode, payload = chunk
-                                if stream_mode == "values":
-                                    last_state_snapshot = payload  # type: ignore
-                                    last_state = State(**last_state_snapshot)  # type: ignore
-
-                            if not last_state:
-                                err = f"[{task_name}] No result received from graph"
-                                logger.warning(err)
-                                await task.finalize(
-                                    content=output,
-                                    state=last_state_snapshot,
-                                    error=err,
-                                )
-                                if context.data_engine:
-                                    context.data_engine.end_session("failed")
-                                return None
-
-                            output = await self._extract_output(
-                                task_name=task_name,
-                                ctx=context,
-                                request=request,
-                                output_config=output_config,
-                                state=last_state,
-                            )
-                            # Run outcome (goal axis x test axis) drives the
-                            # wrap-up instead of an unconditional success path.
-                            run_outcome = getattr(last_state, "run_outcome", None)
-                            context.run_outcome = run_outcome
-                            output = attach_test_summary(output, run_outcome)
-                            task_status_axis = (
-                                run_outcome.get("task_status") if run_outcome else None
-                            )
-                            tests_failed = (
-                                int((run_outcome.get("tests") or {}).get("failed", 0))
-                                if run_outcome
-                                else 0
-                            )
-                            if task_status_axis == "blocked":
-                                err = (
-                                    f"[{task_name}] Task ended blocked: verify"
-                                    " criteria unmet after exhausting the final"
-                                    " check budget."
-                                )
-                                logger.warning(err)
-                                await task.finalize(
-                                    content=output,
-                                    state=last_state_snapshot,
-                                    error=err,
-                                )
-                                if context.data_engine:
-                                    context.data_engine.end_session("failed")
-                                return output
-
-                            if tests_failed > 0:
-                                logger.warning(
-                                    f"[{task_name}] Task completed, but"
-                                    f" {tests_failed} assertion(s) failed —"
-                                    " see the test summary."
-                                )
-                            else:
-                                logger.info(f"✅ Automation '{task_name}' is success ✅")
+                        status = flash_result.get("status")
+                        if status == "completed":
+                            logger.info(f"✅ Automation '{task_name}' is success ✅")
                             await task.finalize(content=output, state=last_state_snapshot)
                             if context.data_engine:
                                 context.data_engine.end_session("completed")
-
-                            return output
+                        else:
+                            err = (
+                                f"[{task_name}] FlashRunner failed:"
+                                f" {flash_result.get('explanation')}"
+                            )
+                            logger.warning(err)
+                            await task.finalize(
+                                content=output,
+                                state=last_state_snapshot,
+                                error=err,
+                            )
+                            if context.data_engine:
+                                context.data_engine.end_session("failed")
+                        return output
                     finally:
                         if recording_started:
 
@@ -935,57 +836,6 @@ class AgentBase:
     def _prepare_output_files(self, task: Task):
         if task.request.llm_output_path:
             _validate_and_prepare_file(file_path=task.request.llm_output_path)
-
-    async def _extract_output(
-        self,
-        task_name: str,
-        ctx: ArtemisContext,
-        request: TaskRequest[TOutput],
-        output_config: OutputConfig | None,
-        state: State,
-    ) -> str | dict | TOutput | None:
-        exec_setup = getattr(ctx, "execution_setup", None)
-        outputter_cfg = getattr(exec_setup, "outputter", None) or (
-            getattr(ctx.agent_config, "outputter", None) if ctx and ctx.agent_config else None
-        )
-        outputter_enabled = getattr(outputter_cfg, "enabled", True) if outputter_cfg else True
-        force_synthesis = (
-            getattr(outputter_cfg, "force_synthesis", False) if outputter_cfg else False
-        )
-        if exec_setup and getattr(exec_setup, "disable_outputter", False):
-            outputter_enabled = False
-
-        should_run = outputter_enabled and (
-            (
-                output_config
-                and output_config.needs_structured_format(default_enabled=outputter_enabled)
-            )
-            or force_synthesis
-            or (output_config and output_config.enable_outputter is True)
-        )
-        if output_config and output_config.enable_outputter is False:
-            should_run = False
-
-        if should_run:
-            logger.info(f"[{task_name}] Generating structured output via Outputter...")
-            try:
-                structured_output = await outputter(
-                    ctx=ctx,
-                    output_config=output_config or OutputConfig(),
-                    graph_output=state,
-                )
-                logger.info(f"[{task_name}] Structured output: {structured_output}")
-                record_events(
-                    output_path=request.llm_output_path,
-                    events=structured_output,
-                )
-                if request.output_format is not None and request.output_format is not NoneType:
-                    return request.output_format.model_validate(structured_output)
-                return structured_output
-            except Exception as e:
-                logger.error(f"[{task_name}] Failed to generate structured output: {e}")
-                return None
-        return None
 
     def _init_clients(
         self,

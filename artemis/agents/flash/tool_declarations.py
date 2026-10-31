@@ -38,7 +38,7 @@ from artemis.controllers.unified_controller import UnifiedMobileController
 from artemis.core.tool_declaration import ToolDeclaration
 from artemis.mcp.action_specs import tool_declaration
 from artemis.mcp.observation import observe
-from artemis.graph.state import State
+from artemis.state import State
 from artemis.utils.notes import (
     LIST_NOTES_DOCSTRING,
     READ_NOTE_ARG_KEY_DESC,

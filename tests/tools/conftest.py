@@ -88,7 +88,7 @@ def artemis_context(inputs_dir, mock_adb_client):
 @pytest.fixture
 def mock_state(inputs_dir):
     """Provides a dummy graph State with realistic artifact paths for tools that need state injection."""
-    from artemis.graph.state import State
+    from artemis.state import State
 
     state = MagicMock(spec=State)
     state.latest_screenshot = str(inputs_dir / "screenshot.jpg")

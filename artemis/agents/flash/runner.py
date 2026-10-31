@@ -54,8 +54,13 @@ from langchain_core.messages import (
 )
 
 from artemis.agents.flash.summarizer import VisualStepSummarizer, build_focus_context
-from artemis.agents.operator.prompts import REASONING_REMINDER, UserGuidance, render_user_guidance
-from artemis.agents.validator.tool_declarations import (
+from artemis.agents.flash.guidance import (
+    REASONING_REMINDER,
+    UserGuidance,
+    check_injected_instruction_file,
+    render_user_guidance,
+)
+from artemis.agents.flash.tool_declarations import (
     ASK_EXPLORER_TOOL,
     CLICK_SEQUENCE_TOOL,
     LIST_NOTES_TOOL,
@@ -74,8 +79,7 @@ from artemis.config import (
 from artemis.context import ArtemisContext
 from artemis.controllers.unified_controller import UnifiedMobileController
 from artemis.data_engine.trace import trace
-from artemis.graph.perception import _check_injected_instruction_file
-from artemis.graph.state import State
+from artemis.state import State
 from artemis.llm.structured import ParseFailure, parse_structured
 from artemis.mcp.action_executor import McpActionExecutor
 from artemis.mcp.observation import observe
@@ -320,7 +324,7 @@ class FlashRunner:
             return None, None
         try:
             injected_payload = await asyncio.to_thread(
-                _check_injected_instruction_file,
+                check_injected_instruction_file,
                 str(self.ctx.data_engine.base_dir),
             )
         except (OSError, ValueError, AttributeError) as e:
