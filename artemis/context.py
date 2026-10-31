@@ -18,8 +18,7 @@ from __future__ import annotations
 
 import asyncio
 
-from pathlib import Path
-from typing import Any, Literal, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from artemis.data_engine.engine import DataEngine
@@ -33,10 +32,10 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from artemis.utils.video import detect_video_tools_enabled
 
 
-from artemis.config import ExplorerConfig, LLMConfig
+from artemis.config import LLMConfig
 
 
-from third_party.mobile_use.context import (
+from third_party.mobile_use.context import (  # noqa: F401  (re-exported names)
     AppLaunchResult,
     DeviceContext,
     DeviceClientAccessors,
@@ -52,20 +51,6 @@ class ExecutionSetup(ExecutionSetupBase):
     """Execution setup for a task."""
 
     video_recording_tools_enabled: bool = Field(default_factory=detect_video_tools_enabled)
-    explorer: ExplorerConfig = Field(default_factory=ExplorerConfig)
-    explorer_versions: dict[str, str] = Field(default_factory=dict)
-
-    @property
-    def explorer_version(self) -> str:
-        return self.explorer.default_version
-
-    @property
-    def explorer_flash_mode(self) -> str:
-        return self.explorer.flash_mode
-
-    @property
-    def explorer_caching(self) -> bool | None:
-        return self.explorer.caching
 
 
 class ArtemisContext(DeviceClientAccessors, BaseModel):

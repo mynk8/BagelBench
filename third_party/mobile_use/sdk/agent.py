@@ -564,13 +564,13 @@ class AgentBase:
                         max_turns = (
                             request.max_steps if request.max_steps != RECURSION_LIMIT else None
                         )
-                        # A benchmark run routes every device call through the
-                        # recording bench server (artemis.bench.flash).
-                        bench = BenchRun.from_env()
-                        if bench is not None:
-                            await install_bench_session(context, bench)
+                        # Every run is a benchmark run: device calls go through the
+                        # recording bench server (artemis.bench.flash), into the
+                        # directory the environment names or the session's bench/.
+                        bench = BenchRun.from_env() or BenchRun.for_session(context)
+                        await install_bench_session(context, bench)
                         runner = FlashRunner(
-                            context, goal=request.goal, max_turns=max_turns, bench=bench
+                            context, goal=request.goal, bench=bench, max_turns=max_turns
                         )
                         flash_result = await runner.run(state)
 

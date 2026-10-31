@@ -57,6 +57,6 @@ def score_results(manifest_path: Path, results_dir: Path) -> dict[str, Any]:
     runs = collect_runs(manifest_path, results_dir)
     report = benchmark_score(runs)
     report["missing_trials"] = sum(1 for run in runs if not run["graded"])
-    guidance = {run.get("guidance") for run in runs}
+    guidance = {str(run["guidance"]) for run in runs if run.get("guidance")}
     report["guidance_level"] = guidance.pop() if len(guidance) == 1 else sorted(guidance)
     return report

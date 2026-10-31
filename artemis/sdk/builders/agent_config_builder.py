@@ -17,11 +17,7 @@
 import os
 from typing import Any, cast
 
-from artemis.config import (
-    ExplorerVersion,
-    load_agent_config,
-    settings,
-)
+from artemis.config import load_agent_config, settings
 from artemis.context import DevicePlatform
 from artemis.sdk.types.agent import AgentConfig, ServerConfig
 from artemis.utils.video import detect_video_tools_enabled
@@ -42,11 +38,7 @@ class AgentConfigBuilder(AgentConfigBuilderBase):
         self._max_concurrency: int | None = None
 
         agent_cfg = load_agent_config()
-        self._explorer = agent_cfg.explorer
-        self._explorer_versions = agent_cfg.explorer_versions
-        self._denylisted_tools = agent_cfg.denylisted_tools
         self._video_analyzer = agent_cfg.video_analyzer
-        self._enable_video_ledger = agent_cfg.video_analyzer.enable_ledger
         if agent_cfg.video_analyzer.enabled is not None:
             self._video_recording_tools_enabled = agent_cfg.video_analyzer.enabled
         else:
@@ -85,121 +77,14 @@ class AgentConfigBuilder(AgentConfigBuilderBase):
         self._force_web_accessibility = enabled
         return self
 
-    def with_flash_config(
-        self,
-        max_turns: int | None = None,
-        explorer_mode: ExplorerVersion | None = None,
-        step_summarizer: bool | None = None,
-        step_summarizer_model: str | None = None,
-        prune_history_xml: bool | None = None,
-    ) -> "AgentConfigBuilder":
-        """Configure ⚡ Flash execution profile options.
+    def with_flash_config(self, max_turns: int | None = None) -> "AgentConfigBuilder":
+        """Configure the Flash loop.
 
         Args:
             max_turns: Maximum reactive loop turns (0 = unlimited)
-            explorer_mode: Explorer tier used by the Flash runner's ``ask_explorer``
-                ('flash' one-shot detection, 'pro' short reasoning loop, 'ultra'
-                deep loop); mirrored to ``explorer.flash_mode``
-            step_summarizer: Enable/disable asynchronous visual context compressor
-            step_summarizer_model: Lightweight model for background step summarization
-            prune_history_xml: Whether to prune outdated XML trees from historical steps
         """
-        updates: dict[str, Any] = {}
         if max_turns is not None:
-            updates["max_turns"] = max_turns
-        if explorer_mode is not None:
-            updates["explorer_mode"] = explorer_mode
-            self._explorer = self._explorer.model_copy(update={"flash_mode": explorer_mode})
-        if (
-            step_summarizer is not None
-            or step_summarizer_model is not None
-            or prune_history_xml is not None
-        ):
-            sum_updates: dict[str, Any] = {}
-            if step_summarizer is not None:
-                sum_updates["enabled"] = step_summarizer
-            if step_summarizer_model is not None:
-                sum_updates["model"] = step_summarizer_model
-            if prune_history_xml is not None:
-                sum_updates["prune_history_xml"] = prune_history_xml
-            updates["step_summarizer"] = self._flash.step_summarizer.model_copy(update=sum_updates)
-        if updates:
-            self._flash = self._flash.model_copy(update=updates)
-        return self
-
-    def with_flash_step_summarizer(
-        self,
-        enabled: bool = True,
-        model: str | None = None,
-        prune_history_xml: bool | None = None,
-    ) -> "AgentConfigBuilder":
-        """Configure Flash asynchronous step state summarizer options."""
-        return self.with_flash_config(
-            step_summarizer=enabled,
-            step_summarizer_model=model,
-            prune_history_xml=prune_history_xml,
-        )
-
-    def with_explorer(
-        self,
-        version: ExplorerVersion | None = None,
-        default_version: ExplorerVersion | None = None,
-        flash_mode: ExplorerVersion | None = None,
-        pro_mode: ExplorerVersion | None = None,
-        caching: bool | None = None,
-        versions: dict[str, ExplorerVersion] | None = None,
-    ) -> "AgentConfigBuilder":
-        """Configure the Explorer tier behind ``ask_explorer``.
-
-        The tier is a user setting resolved per execution profile; calling agents
-        never see it. Precedence at run time: ``ARTEMIS_EXPLORER_VERSION``, then
-        ``versions`` (per-agent override), then the profile knob (``flash_mode``
-        for the Flash runner, ``pro_mode`` for the Pro Operator / Validator), then
-        ``default_version``.
-
-        Args:
-            version: Fallback tier when no profile knob applies ('flash', 'pro', 'ultra')
-            default_version: Alias for version
-            flash_mode: Tier for the Flash execution profile (FlashRunner)
-            pro_mode: Tier for the Pro execution profile (Operator / Validator)
-            caching: Gemini explicit context caching for the multi-turn tiers;
-                None keeps the per-tier default (off for pro, on for ultra)
-            versions: Advanced per-agent override, e.g. ``{"validator": "ultra"}``;
-                empty by default so the profile knobs decide
-        """
-        target_version = version if version is not None else default_version
-        updates = {}
-        if target_version is not None:
-            updates["default_version"] = target_version
-        if flash_mode is not None:
-            updates["flash_mode"] = flash_mode
-        if pro_mode is not None:
-            updates["pro_mode"] = pro_mode
-        if caching is not None:
-            updates["caching"] = caching
-        if updates:
-            self._explorer = self._explorer.model_copy(update=updates)
-        if versions is not None:
-            self._explorer_versions = versions
-        return self
-
-    def with_explorer_version(self, version: ExplorerVersion) -> "AgentConfigBuilder":
-        """Configure the fallback Explorer tier ('flash', 'pro', or 'ultra').
-
-        Only applies when no profile knob matches; prefer :meth:`with_flash_config`
-        / :meth:`with_pro_config` (or :meth:`with_explorer`) for the per-profile tiers.
-        """
-        self._explorer = self._explorer.model_copy(update={"default_version": version})
-        return self
-
-    def with_explorer_versions(self, versions: dict[str, ExplorerVersion]) -> "AgentConfigBuilder":
-        """Configure the advanced per-agent Explorer tier override (empty by default)."""
-        self._explorer_versions = versions
-        return self
-
-    def with_denylisted_tools(self, tools: dict[str, list[str]]) -> "AgentConfigBuilder":
-        """Configure denylisted tools."""
-        self._denylisted_tools = tools
+            self._flash = self._flash.model_copy(update={"max_turns": max_turns})
         return self
 
     def _extra_config_fields(self) -> dict[str, Any]:
@@ -212,13 +97,7 @@ class AgentConfigBuilder(AgentConfigBuilderBase):
             "video_recording_tools_enabled": self._video_recording_tools_enabled,
             "force_web_accessibility": self._force_web_accessibility,
             "flash": self._flash,
-            "explorer": self._explorer,
-            "explorer_versions": self._explorer_versions,
-            "denylisted_tools": self._denylisted_tools,
-            "enable_video_ledger": self._enable_video_ledger,
-            "video_analyzer": self._video_analyzer.model_copy(
-                update={"enable_ledger": self._enable_video_ledger}
-            ),
+            "video_analyzer": self._video_analyzer,
             "concurrency_mode": self._concurrency_mode,
             "max_concurrency": self._max_concurrency,
         }

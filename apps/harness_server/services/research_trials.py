@@ -62,8 +62,30 @@ def _json(path: Path) -> dict[str, Any]:
         return {}
 
 
+#: The bench answer mapped onto the research PASS/FAIL scale (a defect fails the test).
+BENCH_TO_RESEARCH = {"DEFECT": "FAIL", "NO_DEFECT": "PASS", "INCONCLUSIVE": "INCONCLUSIVE"}
+
+
 def declared_verdict(folder: Path) -> dict[str, Any]:
-    """The tester's own verdict: the last VERDICT line (or verdict heading plus value line) in its most recently written note."""
+    """The tester's own verdict.
+
+    Current runs end with ``submit_verdict``, recorded in ``bench/verdict.json``.
+    Runs recorded before that read the last VERDICT line (or verdict heading plus
+    value line) in the most recently written note.
+    """
+    bench_file = folder / "bench" / "verdict.json"
+    if bench_file.is_file():
+        try:
+            answer = json.loads(bench_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            answer = {}
+        verdict = BENCH_TO_RESEARCH.get(str(answer.get("verdict")))
+        return {
+            "verdict": verdict,
+            "source": {"file": "bench/verdict.json", **answer} if verdict else None,
+            "candidates": 1 if verdict else 0,
+            "conflicting": False,
+        }
     candidates = []
     notes = sorted(
         (p for p in (folder / "notes").glob("*.md") if p.name not in NON_VERDICT_NOTES),

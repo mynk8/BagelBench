@@ -67,7 +67,6 @@ ENV_OPEN_ROUTER_API_KEY = "OPEN_ROUTER_API_KEY"
 ENV_XAI_API_KEY = "XAI_API_KEY"
 
 # Explorer & Agent Defaults
-ENV_ARTEMIS_EXPLORER_VERSION = "ARTEMIS_EXPLORER_VERSION"
 ENV_ARTEMIS_DEFAULT_PROFILE = "ARTEMIS_DEFAULT_PROFILE"
 ENV_ARTEMIS_DEFAULT_MODEL = "ARTEMIS_DEFAULT_MODEL"
 ENV_ARTEMIS_USE_FILE_API = "ARTEMIS_USE_FILE_API"
@@ -112,7 +111,6 @@ DEFAULT_STREAM_PING_INTERVAL = 15.0
 
 DEFAULT_PROFILE = "pro"
 DEFAULT_MODEL = "gemini-2.5-flash"
-DEFAULT_EXPLORER_VERSION: Literal["flash", "pro", "ultra"] = "flash"
 
 
 # ==============================================================================
@@ -132,7 +130,6 @@ LLMProvider = Literal[
     "custom",
     "codex",
 ]
-ExplorerVersion = Literal["flash", "pro", "ultra"]
 
 LLMUtilsNode = Literal[
     "outputter",

@@ -16,8 +16,7 @@
 
 Device actions use the in-process MCP session. Argument normalization,
 element-index resolution, coordinate descriptions, smart swipes, post-action
-observations, state updates, tracing, and helper tools are handled here on the
-agent side.
+observations, state updates and tracing are handled here on the agent side.
 
 Flash binds the same agent dialect as the Pro Operator: a ``click``,
 ``long_press`` or ``input_text`` target is either an element index into the
@@ -36,7 +35,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from artemis.core.tool_failure import ToolFailure, is_tool_failure
 from artemis.context import ArtemisContext
 from artemis.controllers.unified_controller import UnifiedMobileController
 from artemis.data_engine.trace import TraceSpan
@@ -49,18 +47,9 @@ from artemis.agents.flash.tool_declarations import (
     ToolExecutionResult,
     normalize_coordinate_target,
 )
-from artemis.tools.history import HISTORY_TOOL_NAMES, history_tool_by_name
-from artemis.tools.tool_wrapper import split_multimodal_result
 from artemis.utils.coordinates import (
     compute_smart_swipe_coordinates,
     parse_swipe_parameters,
-)
-from artemis.utils.notes import (
-    format_list_notes_failure,
-    format_list_notes_success,
-    format_read_note_failure,
-    list_notes_info,
-    read_note_content,
 )
 from third_party.mobile_use.utils.logger import get_logger
 
@@ -70,10 +59,6 @@ __all__ = ["McpActionExecutor"]
 
 
 #: Non-device tools executed agent-side (never behind the action server).
-AGENT_TOOL_NAMES: frozenset[str] = (
-    frozenset({"read_note", "list_notes", "ask_explorer", "video_analyzer"}) | HISTORY_TOOL_NAMES
-)
-
 #: Actions whose ``target`` is a single point: an element index or an [x, y] pair.
 _POINT_TARGET_ACTIONS: frozenset[str] = frozenset({"click", "long_press", "input_text"})
 
@@ -90,15 +75,10 @@ class McpActionExecutor:
         ctx: ArtemisContext,
         controller: UnifiedMobileController | None = None,
         actuator: AdbActuator | None = None,
-        agent_name: str = "validator",
     ):
         self.ctx = ctx
         self.actuator = actuator or getattr(ctx, "actuator", None) or AdbActuator(ctx, controller)
         self.controller = self.actuator.controller
-        # Identifies the calling agent / profile to the Explorer tier resolver
-        # (``explorer.flash_mode`` vs ``explorer.pro_mode``); the agent itself
-        # never sees or chooses the tier.
-        self.agent_name = agent_name
         self._session: ActionSession | None = None
 
     @property
@@ -133,9 +113,6 @@ class McpActionExecutor:
         shows).
         """
         raw_name = name.split(":")[-1] if ":" in name else name
-
-        if raw_name in AGENT_TOOL_NAMES:
-            return await self._execute_agent_tool(raw_name, name, args, tool_call_id, state)
 
         if raw_name in self.action_tool_names:
             return await self._execute_device_action(
@@ -450,8 +427,8 @@ class McpActionExecutor:
             raise _ArgError(
                 f"Error during {label}: Invalid target index {index}.{hint} Use an index"
                 " shown in the Visible UI Elements list, or normalized [x, y]"
-                " coordinates with a target_description (ask_explorer can locate an"
-                " element that is visible but not listed)."
+                " coordinates with a target_description for an element that is"
+                " visible but not listed."
             )
         element = elements[index - 1]
         width, height = self._screen_size()
@@ -536,8 +513,7 @@ class McpActionExecutor:
                 raise _ArgError(
                     f"Error during click sequence: entry {position} ({raw_target!r}) is an"
                     " element index; click_sequence takes normalized [x, y] coordinate"
-                    " pairs only. Use the element's coordinates from the element list,"
-                    " or ask_explorer to locate it."
+                    " pairs only. Use the element's coordinates from the element list."
                 )
             if isinstance(target, (list, tuple)) and len(target) == 2:
                 nx, ny = int(target[0]), int(target[1])
@@ -620,141 +596,3 @@ class McpActionExecutor:
             )
 
         raise _ArgError(f"Error during swipe: Invalid direction: {args}")
-
-    # --- Non-device tools (stay agent-side) ------------------------------------------
-
-    async def _execute_agent_tool(
-        self,
-        raw_name: str,
-        name: str,
-        args: dict[str, Any],
-        tool_call_id: str,
-        state: Any,
-    ) -> ToolExecutionResult:
-        span = TraceSpan(name=raw_name, trace_type="tool", ctx=self.ctx)
-        span.payload = {"args": args}
-        ok: bool | None = None
-        blocks: list[dict[str, Any]] | None = None
-        with span:
-            if raw_name == "read_note":
-                text = await self._read_note(
-                    args.get("key", ""), args.get("start_line"), args.get("end_line")
-                )
-            elif raw_name == "list_notes":
-                text = await self._list_notes()
-            elif raw_name == "video_analyzer":
-                text, ok = await self._video_analyzer(
-                    args.get("time_description") or args.get("TimeDescription") or "",
-                    args.get("purpose") or args.get("Purpose") or "",
-                )
-            elif raw_name in HISTORY_TOOL_NAMES:
-                text, blocks = await self._history_tool(raw_name, args)
-            else:
-                text, ok = await self._ask_explorer(
-                    # ``task_description`` is the pre-contract argument name
-                    # kept for old MCP clients.
-                    args.get("query") or args.get("task_description") or "",
-                    args.get("context_feedback"),
-                    state,
-                )
-            span.result = {"outcome": text}
-            if ok is False:
-                span.status = "failed"
-                span.error = text
-
-        # The Explorer and the video analyzer report their status explicitly;
-        # note and history texts carry it structurally (a ``ToolFailure``), so a
-        # history lookup's "no match" answer is an answer, not an error.
-        if ok is None:
-            ok = not is_tool_failure(text)
-        return ToolExecutionResult(
-            tool_call_id=tool_call_id,
-            tool_name=name,
-            status="success" if ok else "error",
-            text_summary=text,
-            # Content blocks (a step screenshot) ride along for callers that
-            # forward multimodal tool results; the text summary stays complete.
-            raw_result=blocks,
-        )
-
-    async def _read_note(self, key: str, start_line: int | None, end_line: int | None) -> str:
-        try:
-            base_dir = self.ctx.data_engine.base_dir if self.ctx.data_engine else None
-            if not base_dir:
-                return format_read_note_failure(key, "DataEngine not initialized.")
-            return read_note_content(base_dir, key, start_line, end_line)
-        except Exception as e:
-            return format_read_note_failure(key, str(e))
-
-    async def _list_notes(self) -> str:
-        try:
-            base_dir = self.ctx.data_engine.base_dir if self.ctx.data_engine else None
-            if not base_dir:
-                return format_list_notes_failure("DataEngine not initialized.")
-            return format_list_notes_success(list_notes_info(base_dir))
-        except Exception as e:
-            return format_list_notes_failure(str(e))
-
-    async def _history_tool(
-        self, raw_name: str, args: dict[str, Any]
-    ) -> tuple[str, list[dict] | None]:
-        """Runs one of the shared history tools (the same instances the Pro
-        agents bind), dispatched generically by name.
-
-        Returns the text answer and, for a screenshot, the multimodal content
-        blocks the tool produced.
-        """
-        tool = history_tool_by_name(raw_name)
-        if tool is None:
-            return ToolFailure(f"Error: Tool '{raw_name}' not supported."), None
-        accepted = {k: v for k, v in args.items() if k in tool.args_schema.model_fields}
-        try:
-            result = await tool.execute(ctx=self.ctx, **accepted)
-        except Exception as e:
-            logger.error(f"Error running {raw_name}: {e}")
-            return ToolFailure(f"{raw_name} failed: {e}"), None
-        text, images = split_multimodal_result(result)
-        if images:
-            return text or "Screenshot attached.", result
-        return text, None
-
-    async def _video_analyzer(self, time_description: str, purpose: str) -> tuple[str, bool]:
-        """Runs the video-analyzing subagent over the session recording.
-
-        Same subagent the Pro operator's ``video_analyzer`` LangChain tool
-        delegates to; imported lazily because the video stack is heavy.
-        """
-        from artemis.agents.video_analyzer.video_analyzer import VideoAnalyzer
-
-        try:
-            outcome, status = await VideoAnalyzer(self.ctx).run(time_description, purpose)
-        except Exception as e:
-            logger.error(f"Error running video analyzer: {e}")
-            return f"Error running video analyzer: {e}", False
-        if status in ("failed", "error"):
-            return f"Video analysis failed: {outcome}", False
-        return outcome, True
-
-    async def _ask_explorer(
-        self, query: str, context_feedback: str | None, state: Any
-    ) -> tuple[str, bool]:
-        """Runs the Explorer pipeline for this executor's agent; returns ``(text, ok)``.
-
-        ``ok`` is False only when the Explorer run itself failed: a clean
-        "not found" is a successful answer the agent has to reason about.
-        """
-        # Imported lazily: the explorer stack is heavy and recursive (it spawns an LLM
-        # sub-agent), which is also why it must never live behind the action server.
-        from artemis.tools.explorer_tool import locate, register_candidates, render_text
-
-        try:
-            outcome = await locate(
-                self.ctx, state, query, context_feedback or "", agent_name=self.agent_name
-            )
-            registered = register_candidates(self.ctx, state, outcome)
-            # Candidates join ``state.indexed_elements``, and this executor's
-            # ``click`` resolves an index against that list (Pro parity), so the
-            # answer teaches the index syntax next to the coordinates.
-            return render_text(query, outcome, registered, index_targets=True), not outcome.error
-        except Exception as e:
-            return f"Error executing ask_explorer: {e}", False

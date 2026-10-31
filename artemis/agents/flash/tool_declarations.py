@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Universal Tool Declarations and Execution Results for Artemis.
+"""Flash's device tool declarations and the tool execution result envelope.
 
-Execution itself lives in :class:`artemis.mcp.action_executor.McpActionExecutor`
-(Flash) and the Validator's action session (Pro); this module keeps the shared
-result envelope, the observation helpers both use, and the tool declarations.
+Execution itself lives in :class:`artemis.mcp.action_executor.McpActionExecutor`.
 """
 
 import base64
@@ -27,23 +25,8 @@ from google.genai import types as genai_types
 from langchain_core.messages import ToolMessage
 from pydantic import BaseModel, Field
 
-from artemis.agents.explorer.constants import (
-    ASK_EXPLORER_CONTEXT_FEEDBACK_DESCRIPTION,
-    ASK_EXPLORER_DESCRIPTION,
-    ASK_EXPLORER_QUERY_DESCRIPTION,
-    ASK_EXPLORER_TOOL_NAME,
-)
-from artemis.context import ArtemisContext
-from artemis.controllers.unified_controller import UnifiedMobileController
 from artemis.core.tool_declaration import ToolDeclaration
 from artemis.mcp.action_specs import tool_declaration
-from artemis.mcp.observation import observe
-from artemis.state import State
-from artemis.utils.notes import (
-    LIST_NOTES_DOCSTRING,
-    READ_NOTE_ARG_KEY_DESC,
-    READ_NOTE_DOCSTRING,
-)
 from third_party.mobile_use.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -164,28 +147,6 @@ def prune_intermediate_screenshots(messages: list[Any]) -> None:
             ]
 
 
-async def capture_screenshot_and_parse_ui(
-    ctx: ArtemisContext,
-    state: State,
-    controller: UnifiedMobileController,
-    skip_settling: bool = False,
-) -> tuple[str | None, bytes | None, str | None]:
-    """Captures screenshot and parses fused XML tree after optional screen settling delay.
-
-    Thin adapter over :func:`artemis.mcp.observation.observe` that adds the LangGraph
-    ``State`` write-back (indexed points/elements) the agents rely on.
-    """
-    obs, screenshot_bytes = await observe(ctx, controller, settle_ms=0 if skip_settling else 400)
-    if not obs.ok:
-        return None, None, None
-
-    if obs.hierarchy_ok:
-        state.indexed_points = [el["center"] for el in obs.elements]
-        state.indexed_elements = obs.elements
-
-    return obs.screenshot_path, screenshot_bytes, obs.elements_text
-
-
 def normalize_coordinate_target(target: Any) -> int | list[int] | Any:
     """Normalizes coordinate targets or index references to standard types.
 
@@ -240,93 +201,16 @@ SWIPE_TOOL = tool_declaration("swipe")
 
 PRESS_KEY_TOOL = tool_declaration("press_key")
 
-READ_NOTE_TOOL = ToolDeclaration(
-    name="read_note",
-    description=READ_NOTE_DOCSTRING,
-    parameters={
-        "type": "object",
-        "properties": {
-            "key": {
-                "type": "string",
-                "description": READ_NOTE_ARG_KEY_DESC,
-            },
-            "start_line": {
-                "type": "integer",
-                "description": "Start line to read (1-indexed, inclusive).",
-            },
-            "end_line": {
-                "type": "integer",
-                "description": "End line to read (1-indexed, inclusive).",
-            },
-        },
-        "required": ["key"],
-    },
-)
-
-LIST_NOTES_TOOL = ToolDeclaration(
-    name="list_notes",
-    description=LIST_NOTES_DOCSTRING,
-    parameters={"type": "object", "properties": {}},
-)
-
 MANAGE_APP_TOOL = tool_declaration("manage_app")
 
 WAIT_FOR_DELAY_TOOL = tool_declaration("wait_for_delay")
 
-REPORT_TASK_STATUS_TOOL = ToolDeclaration(
-    name="report_task_status",
-    description=(
-        "[REPORT] Use this tool to return your final answer when you are done"
-        " with the task. This is the ONLY way to return your final conclusion."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "status": {
-                "type": "string",
-                "description": (
-                    "Whether the task was completed successfully ('completed') or"
-                    " failed/unreachable ('failed')."
-                ),
-            },
-            "explanation": {
-                "type": "string",
-                "description": "Provide the final explanation or summary of the task execution.",
-            },
-        },
-        "required": ["status", "explanation"],
-    },
-)
-
-# Same contract as the Operator's LangChain tool (artemis/tools/explorer_tool.py):
-# the Explorer tier is a user setting, so no tier argument is exposed here.
-ASK_EXPLORER_TOOL = ToolDeclaration(
-    name=ASK_EXPLORER_TOOL_NAME,
-    description=ASK_EXPLORER_DESCRIPTION,
-    parameters={
-        "type": "object",
-        "properties": {
-            "query": {
-                "type": "string",
-                "description": ASK_EXPLORER_QUERY_DESCRIPTION,
-            },
-            "context_feedback": {
-                "type": "string",
-                "description": ASK_EXPLORER_CONTEXT_FEEDBACK_DESCRIPTION,
-            },
-        },
-        "required": ["query"],
-    },
-)
-
-VALIDATOR_TOOLS_DECLARATION: list[ToolDeclaration] = [
+DEVICE_TOOL_DECLARATIONS: list[ToolDeclaration] = [
     CLICK_TOOL,
     LONG_PRESS_TOOL,
     INPUT_TEXT_TOOL,
     SWIPE_TOOL,
     PRESS_KEY_TOOL,
-    READ_NOTE_TOOL,
-    LIST_NOTES_TOOL,
     MANAGE_APP_TOOL,
     WAIT_FOR_DELAY_TOOL,
 ]

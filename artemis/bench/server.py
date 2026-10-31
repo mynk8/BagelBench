@@ -151,8 +151,8 @@ def build_bench_server(
     """Builds the bench tool server over ``actuator``, recording into ``recorder``."""
     mcp = FastMCP(name, instructions=INSTRUCTIONS, transport_security=_security(public_hosts))
     conditions = DeviceConditions(shell, app_package)
-    ctx = getattr(actuator, "ctx", None)
-    controller = getattr(actuator, "controller", None)
+    ctx: Any = getattr(actuator, "ctx", None)
+    controller: Any = getattr(actuator, "controller", None)
     started = asyncio.Event()
 
     async def ensure_started() -> None:
@@ -245,7 +245,7 @@ def build_bench_server(
             handler.__annotations__ = inner.__annotations__
             return handler
 
-        mcp.add_tool(recorded(), name=spec.name, description=spec.wire.description)
+        mcp.add_tool(recorded(), name=spec.name, description=inner.__doc__ or "")
 
     # --- Observation -----------------------------------------------------------------
 
@@ -412,7 +412,6 @@ def device_actuator(serial: str, adb_host: str = "127.0.0.1", adb_port: int = 50
     except Exception:  # pylint: disable=broad-exception-caught
         width, height = 1080, 2400
     ctx = ArtemisContext(
-        trace_id=f"bench-{serial}",
         device=DeviceContext(
             host_platform=host_platform.os_type.name,
             mobile_platform=DevicePlatform.ANDROID,

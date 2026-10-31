@@ -117,16 +117,6 @@ class Settings(BaseSettings):
     ARTEMIS_DEFAULT_PROFILE: str = Field(default=DEFAULT_PROFILE)
     ARTEMIS_DEFAULT_MODEL: str = Field(default=DEFAULT_MODEL)
 
-    # Explorer Tool Settings (the tier itself is configured in artemis.jsonc or
-    # via ARTEMIS_EXPLORER_VERSION; see artemis.config.agent.ExplorerConfig)
-    EXPLORER_CACHING: bool | None = Field(
-        default=None,
-        description=(
-            "Environment-level override for Explorer context caching; unset"
-            " defers to the agent configuration and the tier default."
-        ),
-    )
-
     # LLM Reliability
     LLM_PAUSE_TIMEOUT_SECONDS: float = Field(
         default=900.0,

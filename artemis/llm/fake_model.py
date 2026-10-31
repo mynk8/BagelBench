@@ -18,9 +18,7 @@ Completes any task on the first LLM invocation so that queueing, entry
 points, device locking, and status propagation can be exercised without
 real model calls:
 
-- Flash (report_task_status bound): immediately reports status=completed.
-- Pro planner (save_note bound): saves a task plan whose only subgoal is
-  already checked, so convergence_gate ends the graph after planning.
+- Flash (submit_verdict bound): immediately submits NO_DEFECT, ending the run.
 - Anything else: returns a plain "FAKE_LLM_OK" text message.
 
 ARTEMIS_FAKE_LLM_DELAY_S adds an artificial per-call delay so tasks stay
@@ -78,36 +76,13 @@ class FakeChatModel(BaseChatModel):
         call_id = f"fake-{uuid.uuid4().hex[:12]}"
         usage = {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2}
 
-        if "report_task_status" in self.bound_tool_names:
+        if "submit_verdict" in self.bound_tool_names:
             return AIMessage(
-                content="Task verified complete on first observation.",
+                content="Infrastructure check: submitting a verdict on the first observation.",
                 tool_calls=[
                     {
-                        "name": "report_task_status",
-                        "args": {"status": "completed", "explanation": FAKE_DONE_TEXT},
-                        "id": call_id,
-                    }
-                ],
-                usage_metadata=usage,
-            )
-
-        if "save_note" in self.bound_tool_names:
-            already_planned = any(
-                tc.get("name") == "save_note"
-                for m in messages
-                for tc in (getattr(m, "tool_calls", None) or [])
-            )
-            if already_planned:
-                return AIMessage(content="Plan saved. " + FAKE_DONE_TEXT, usage_metadata=usage)
-            return AIMessage(
-                content="Saving completed plan.",
-                tool_calls=[
-                    {
-                        "name": "save_note",
-                        "args": {
-                            "key": "task_plan",
-                            "content": "- [x] " + FAKE_DONE_TEXT,
-                        },
+                        "name": "submit_verdict",
+                        "args": {"verdict": "NO_DEFECT", "note": FAKE_DONE_TEXT},
                         "id": call_id,
                     }
                 ],

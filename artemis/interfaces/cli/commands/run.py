@@ -52,9 +52,6 @@ async def execute_task(
     graph_config_callbacks: Callbacks = [],
     video_recording_tools_enabled: bool | None = None,
     app_path: str | None = None,
-    enable_step_summarizer: bool | None = None,
-    explorer_version: str | None = None,
-    explorer_flash_mode: str | None = None,
 ) -> None:
     """Executes a single mobile automation task end-to-end.
 
@@ -67,8 +64,6 @@ async def execute_task(
         graph_config_callbacks: LangGraph callback handlers.
         video_recording_tools_enabled: Whether screen video analyzer is enabled.
         app_path: Optional local APK path to install prior to execution.
-        explorer_version: Override the fallback Explorer tier ('flash', 'pro', or 'ultra').
-        explorer_flash_mode: Override the Explorer tier used by the Flash loop.
     """
     effective_sid = (
         session_id or os.getenv("ARTEMIS_SESSION_ID") or os.getenv("ARTEMIS_CLOUD_SESSION_ID")
@@ -87,12 +82,6 @@ async def execute_task(
 
     if video_recording_tools_enabled is not None:
         config.with_video_recording_tools(enabled=video_recording_tools_enabled)
-
-    if enable_step_summarizer is not None:
-        config.with_flash_step_summarizer(enabled=enable_step_summarizer)
-
-    if explorer_version is not None or explorer_flash_mode is not None:
-        config.with_explorer(version=explorer_version, flash_mode=explorer_flash_mode)
 
     target_serial = (
         device_serial or settings.ADB_DEVICE_SERIAL or os.environ.get("ADB_DEVICE_SERIAL")
@@ -145,31 +134,6 @@ def run_command(
         typer.Option(
             "--app-path",
             help="Local APK path to install before starting the task.",
-        ),
-    ] = None,
-    enable_step_summarizer: Annotated[
-        bool | None,
-        typer.Option(
-            "--enable-step-summarizer/--disable-step-summarizer",
-            help="Enable or disable Flash asynchronous objective visual step state summarizer.",
-        ),
-    ] = None,
-    explorer_version: Annotated[
-        str | None,
-        typer.Option(
-            "--explorer-version",
-            help=(
-                "Fallback Explorer tier: 'flash' (one-shot"
-                " detection), 'pro' (3-turn reasoning loop) or 'ultra' (8-turn loop with"
-                " zoom, OCR and image processing)."
-            ),
-        ),
-    ] = None,
-    explorer_flash_mode: Annotated[
-        str | None,
-        typer.Option(
-            "--explorer-flash-mode",
-            help="Explorer tier behind ask_explorer ('flash', 'pro', 'ultra').",
         ),
     ] = None,
     device_serial: Annotated[
@@ -313,9 +277,6 @@ def run_command(
                 output_description=output_description,
                 video_recording_tools_enabled=with_video_recording_tools,
                 app_path=app_path,
-                enable_step_summarizer=enable_step_summarizer,
-                explorer_version=explorer_version,
-                explorer_flash_mode=explorer_flash_mode,
             )
         )
     except (KeyboardInterrupt, asyncio.CancelledError):

@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run the Flash loop as the benchmark's reference agent.
+"""Wire the Flash reference agent to the bench device server.
 
 Flash drives the same :func:`~artemis.bench.server.build_bench_server` object that
 external harnesses reach over HTTP, through an in-process session installed on the
 run context. Its tool set is therefore the bench set: the bench device actions, the
 mobile-condition tools and ``submit_verdict`` (declared to Flash as actuator
-extensions, executed by the bench server), with no explorer, history, video or
-shell tools. :class:`~artemis.agents.flash.runner.FlashRunner` with ``bench=True``
-also turns off its helper-model calls so one model makes every decision.
+extensions, executed by the bench server).
 """
 
 from __future__ import annotations
@@ -159,6 +157,17 @@ class BenchRun:
             step_budget=int(budget) if budget else None,
         )
 
+    @classmethod
+    def for_session(cls, ctx: Any) -> BenchRun:
+        """The default run directory: ``bench/`` inside the session's trace folder."""
+        engine = getattr(ctx, "data_engine", None)
+        base = getattr(engine, "base_dir", None) if engine else None
+        if base is None:
+            from artemis.config import TRACES_PATH
+
+            base = Path(TRACES_PATH) / f"run-{os.getpid()}"
+        return cls(run_dir=Path(base) / "bench")
+
 
 async def install_bench_session(ctx: Any, run: BenchRun) -> None:
     """Routes this run's device access through a recording bench server."""
@@ -167,6 +176,8 @@ async def install_bench_session(ctx: Any, run: BenchRun) -> None:
 
     device = AdbActuator(ctx)
     serial = getattr(ctx.device, "device_id", None)
+    if not serial:
+        raise RuntimeError("A bench run needs a device: the run context has no device id.")
     server = build_bench_server(
         device,
         RunRecorder(run.run_dir),

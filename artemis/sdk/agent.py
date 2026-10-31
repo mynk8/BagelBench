@@ -274,8 +274,6 @@ class Agent(AgentBase):
             if task.request.record_trace
             else False,
             video_recording_tools_enabled=self._config.video_recording_tools_enabled,
-            explorer=self._config.explorer,
-            explorer_versions=self._config.explorer_versions,
         )
 
         context.data_engine = DataEngine(ctx=context)

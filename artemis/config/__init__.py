@@ -16,18 +16,11 @@
 
 from artemis.config.agent import (
     AgentGlobalConfig,
-    ExplorerConfig,
     FlashProfileConfig,
-    MemoryChunkingConfig,
     MemoryConfig,
-    MemoryRecallConfig,
-    MemoryReplayConfig,
-    MemoryRuntimeConfig,
     MemoryTranscriptConfig,
-    StepSummarizerConfig,
     VideoAnalyzerConfig,
     load_agent_config,
-    resolve_explorer_version,
 )
 from artemis.config.constants import (
     AGENT_CONFIG_FILENAME,
@@ -36,7 +29,6 @@ from artemis.config.constants import (
     DEFAULT_ADB_HOST,
     DEFAULT_ADB_PORT,
     DEFAULT_EDGE_MONITOR_PORT,
-    DEFAULT_EXPLORER_VERSION,
     DEFAULT_GATEWAY_PORT,
     DEFAULT_MODEL,
     DEFAULT_PROFILE,
@@ -64,7 +56,6 @@ from artemis.config.constants import (
     ENV_ARTEMIS_DEFAULT_PROFILE,
     ENV_ARTEMIS_DEVICE_ID,
     ENV_ARTEMIS_EDGE_PORT,
-    ENV_ARTEMIS_EXPLORER_VERSION,
     ENV_ARTEMIS_IPC_PORT,
     ENV_ARTEMIS_MCP_SERVER,
     ENV_ARTEMIS_TENANT_ID,
@@ -82,7 +73,6 @@ from artemis.config.constants import (
     LLM_CONFIG_OVERRIDE_FILENAME,
     LS_ADDRESS_FILENAME,
     AgentNode,
-    ExplorerVersion,
     LLMProvider,
     LLMUtilsNode,
 )
@@ -198,18 +188,11 @@ __all__ = [
     "validate_vertex_ai_credentials",
     # Agent & Tool Config
     "AgentGlobalConfig",
-    "ExplorerConfig",
     "FlashProfileConfig",
-    "MemoryChunkingConfig",
     "MemoryConfig",
-    "MemoryRecallConfig",
-    "MemoryReplayConfig",
-    "MemoryRuntimeConfig",
     "MemoryTranscriptConfig",
-    "StepSummarizerConfig",
     "VideoAnalyzerConfig",
     "load_agent_config",
-    "resolve_explorer_version",
     # Output Config
     "OutputConfig",
     "prepare_output_files",
@@ -225,7 +208,6 @@ __all__ = [
     "cleanup_temp_dir",
     # Types & Literals
     "LLMProvider",
-    "ExplorerVersion",
     "LLMUtilsNode",
     "LLMUtilsNodeWithFallback",
     "AgentNode",
@@ -247,7 +229,6 @@ __all__ = [
     "DEFAULT_STREAM_PING_INTERVAL",
     "DEFAULT_PROFILE",
     "DEFAULT_MODEL",
-    "DEFAULT_EXPLORER_VERSION",
     # Environment Variables
     "ENV_ARTEMIS_APP_DIR",
     "ENV_ANTIGRAVITY_APP_DIR",
@@ -276,7 +257,6 @@ __all__ = [
     "ENV_ANTHROPIC_API_KEY",
     "ENV_OPEN_ROUTER_API_KEY",
     "ENV_XAI_API_KEY",
-    "ENV_ARTEMIS_EXPLORER_VERSION",
     "ENV_ARTEMIS_DEFAULT_PROFILE",
     "ENV_ARTEMIS_DEFAULT_MODEL",
     "ENV_ARTEMIS_USE_FILE_API",

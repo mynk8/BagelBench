@@ -648,9 +648,9 @@ def replay_time_label(step: dict, session_start: Any) -> str:
         and isinstance(ts, (int, float))
         and not isinstance(ts, bool)
     ):
-        from artemis.memory.chunking import step_offset_label
+        from artemis.memory.transcript import format_session_offset
 
-        return step_offset_label(step, float(session_start))
+        return format_session_offset(float(ts) - float(session_start))
     return f"Start: {step.get('relative_time') or 'N/A'}"
 
 
