@@ -1,0 +1,36 @@
+{
+  "all_pairs_share_same_instruction_between_variants": true,
+  "app_counts": {
+    "Broccoli": 190,
+    "Pro Expense": 190,
+    "Simple Calendar Pro": 220
+  },
+  "bucket_counts": {
+    "action_effect_side_effects": 60,
+    "control_reachability": 60,
+    "navigation_transitions": 60,
+    "permission_state": 30,
+    "persistence_lifecycle": 60,
+    "presentation_consistency": 60,
+    "record_integrity": 150,
+    "success_signal_truth": 60,
+    "visual_layout": 60
+  },
+  "control_true_count": 600,
+  "curation_rules": [
+    "Use at least two actual source distractor records for side-effect and wrong-target cases.",
+    "Reject semantically duplicate reference pairs even when their source seeds differ.",
+    "Permission cases vary lifecycle context; unrelated record seeds alone do not create new permission cases.",
+    "Reject any mutation whose reference artifacts are identical or whose oracle truth does not flip."
+  ],
+  "duplicate_pair_ids": 0,
+  "duplicate_reference_pairs": 0,
+  "fault_false_count": 600,
+  "issues": [],
+  "pair_count": 600,
+  "scope": "offline reference-contract consistency, not device execution or human oracle calibration",
+  "suite_id": "qa-suite-727cbbe84f4dda195edb",
+  "template_count": 147,
+  "unique_source_parameter_sets": 150,
+  "variant_count": 1200
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": "artemis-androidworld-catalog/v1",
+  "upstream": "https://github.com/google-research/android_world",
+  "upstream_task_list": "https://google-research.github.io/android_world/task_list.html",
+  "selection_rationale": "Prefer parameterized single-record tasks with a state-based task oracle, short UI paths, and fields that support visible, reviewable mutations.",
+  "cases": [
+    {
+      "task_name": "SimpleCalendarAddOneEvent",
+      "app": "Simple Calendar Pro",
+      "state_kind": "sqlite",
+      "tier": "pilot",
+      "mutation_candidates": ["delete_target", "change_title", "shift_date", "truncate_description"],
+      "visibility_check": "Open the event in the calendar UI and have a reviewer confirm the changed field is visible.",
+      "selection_reason": "Single structured event with title, date, duration, and description; the AndroidWorld task guide documents its Events table and task oracle."
+    },
+    {
+      "task_name": "ExpenseAddSingle",
+      "app": "Arduia Pro Expense",
+      "state_kind": "sqlite",
+      "tier": "pilot",
+      "mutation_candidates": ["delete_target", "change_amount", "change_date", "duplicate_target"],
+      "visibility_check": "Open the expense list or detail and have a reviewer confirm the changed field is visible.",
+      "selection_reason": "Single structured financial record makes wrong-value and missing-record faults straightforward to define. Keep runs on a disposable emulator."
+    },
+    {
+      "task_name": "RecipeAddSingleRecipe",
+      "app": "Broccoli Recipe App",
+      "state_kind": "sqlite",
+      "tier": "pilot",
+      "mutation_candidates": ["delete_target", "change_title", "truncate_directions", "change_servings", "duplicate_target"],
+      "visibility_check": "Open the recipe detail and have a reviewer confirm the target field is visible.",
+      "selection_reason": "AndroidWorld exposes a structured recipe row with several independently mutable fields and a task-specific state oracle."
+    },
+    {
+      "task_name": "ContactsAddContact",
+      "app": "Contacts",
+      "state_kind": "contacts_provider",
+      "tier": "extension",
+      "mutation_candidates": ["delete_target", "change_phone", "duplicate_target"],
+      "visibility_check": "Open the contact card and confirm the changed name or number is visible.",
+      "selection_reason": "Useful cross-store check beyond app-owned SQLite; keep only if the emulator's Contacts provider can be mutated and restored safely."
+    },
+    {
+      "task_name": "MarkorCreateNote",
+      "app": "Markor",
+      "state_kind": "filesystem",
+      "tier": "extension",
+      "mutation_candidates": ["delete_target", "truncate_text", "change_text", "rename_file"],
+      "visibility_check": "Open the note in Markor and confirm the content or name fault is visible.",
+      "selection_reason": "Adds a file-backed state reader and realistic note-content checks; mutations must preserve the app's filename and encoding rules."
+    },
+    {
+      "task_name": "SimpleSmsSend",
+      "app": "Simple SMS Messenger",
+      "state_kind": "sms_provider",
+      "tier": "deferred_side_effect",
+      "mutation_candidates": ["delete_target", "change_recipient", "truncate_body", "duplicate_target"],
+      "visibility_check": "Use only a disposable emulator with no external SMS transport; inspect the local conversation.",
+      "selection_reason": "Strong wrong-recipient and wrong-body checks, but excluded from the default suite until emulator-only delivery is verified."
+    }
+  ]
+}

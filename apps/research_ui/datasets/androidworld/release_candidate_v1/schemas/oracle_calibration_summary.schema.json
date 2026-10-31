@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://artemis.local/schemas/android-qa-oracle-calibration-summary-v1.json",
+  "title": "Android QA answer-key calibration summary",
+  "type": "object",
+  "required": ["tier", "reviewed_n", "verifier_correct_n", "verifier_accuracy", "cohen_kappa"],
+  "properties": {
+    "tier": {"enum": ["A", "B", "C", "X"]},
+    "reviewed_n": {"type": "integer", "minimum": 0},
+    "verifier_correct_n": {"type": "integer", "minimum": 0},
+    "verifier_accuracy": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "cohen_kappa": {"type": ["number", "null"], "minimum": -1, "maximum": 1},
+    "false_positive_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "false_negative_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "review_method": {"type": "string"},
+    "adjudication_method": {"type": "string"}
+  },
+  "additionalProperties": false
+}

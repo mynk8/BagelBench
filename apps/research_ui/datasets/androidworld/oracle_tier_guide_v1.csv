@@ -1,0 +1,19 @@
+bucket_id,read_id,tier,method,required_for,notes
+record_integrity,persisted_record_state,A,SQLite/provider/file exact field read,answer_key_truth,Requires pinned app schema and oracle version
+record_integrity,visible_target_discovery,B,Accessibility node/text and bounds on pinned build,case_admission,Use C if OCR or perceptual interpretation is needed
+persistence_lifecycle,post_boundary_store,A,Canonical store read after lifecycle event,answer_key_truth,Fault must be injected at the lifecycle boundary
+action_effect_side_effects,before_after_state_diff,A,Canonical state diff with app-specific volatile-field ignore list,answer_key_truth,Ignore rules are versioned per app and field
+navigation_transitions,screen_fingerprint,B,Deterministic hierarchy fingerprint plus transition sequence,answer_key_truth,Do not use activity name alone for Compose screens
+navigation_transitions,final_app_state,A,Independent final state oracle,answer_key_truth,Required when the transition changes app data
+control_reachability,control_node_predicate,B,Accessibility id/role/state/bounds check on pinned build,answer_key_truth,Visibility and enabled status are deterministic tree properties
+control_reachability,safe_hit_test,B,Scripted non-destructive tap followed by deterministic state/UI check,answer_key_truth,Required for controls whose defect is 'looks enabled but does nothing'
+visual_layout,layout_geometry,B,Raw hierarchy bounds and case-specific geometric thresholds,answer_key_support,Geometry shows change; it does not alone establish harmfulness
+visual_layout,harmful_obstruction,C,Blinded human label of screenshot or perceptual comparison,answer_key_truth,Report reviewer agreement and verifier accuracy separately
+presentation_consistency,stored_value,A,Canonical persisted value read,answer_key_truth,Freeze locale and timezone
+presentation_consistency,rendered_text_tree,B,Accessibility text compared with stored value by frozen normalizer,answer_key_truth,Use field-specific currency/date/unit normalizers
+presentation_consistency,rendered_text_ocr,C,OCR text compared with stored value,answer_key_truth,Use only when text is absent from accessibility tree
+permission_state,permission_and_appop_state,A,dumpsys package and AppOps state,answer_key_truth,Accounts/membership are out of scope
+success_signal_truth,durable_write_state,A,Independent persisted-state read,answer_key_truth,Ground truth for successful versus dropped/wrong write
+success_signal_truth,instrumented_feedback_event,B,Timestamped accessibility event or instrumented app log,signal_exposure,Prefer persistent Snackbar for controlled feedback condition
+success_signal_truth,agent_received_feedback,C,Screenshot/OCR check against observations delivered to agent,signal_exposure,Report exposure miss rate; score signal effect only when exposure is established
+all,unresolved_read_conflict,X,Required oracle reads disagree after adjudication,exclusion,Exclude from scored results and report the count

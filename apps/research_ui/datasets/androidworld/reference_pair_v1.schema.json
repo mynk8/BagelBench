@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Android QA authored reference pair",
+  "type": "object",
+  "required": ["schema_version", "pair_id", "bucket_id", "app", "source", "mechanism", "instruction", "contract", "reference_control", "reference_fault", "reference_control_truth", "reference_fault_truth", "artifact_origin", "fixture_requirement", "control_sha256", "fault_sha256"],
+  "properties": {
+    "schema_version": {"const": "artemis-qa-reference-pairs/v1"},
+    "pair_id": {"type": "string", "pattern": "^qa-[a-f0-9]{20}$"},
+    "bucket_id": {"enum": ["record_integrity", "persistence_lifecycle", "action_effect_side_effects", "navigation_transitions", "control_reachability", "visual_layout", "presentation_consistency", "permission_state", "success_signal_truth"]},
+    "app": {"type": "string"},
+    "instruction": {"type": "string", "minLength": 80},
+    "source": {
+      "type": "object",
+      "required": ["revision", "task_name", "source_pair_id", "seed", "params_sha256"],
+      "properties": {"revision": {"const": "55ddaf5edc6f6c25673aed343907d5b9dca66f84"}, "seed": {"type": "integer"}}
+    },
+    "contract": {"type": "object"},
+    "reference_control": {"type": "object"},
+    "reference_fault": {"type": "object"},
+    "reference_control_truth": {"const": true},
+    "reference_fault_truth": {"const": false},
+    "artifact_origin": {"const": "authored_reference_contract_from_androidworld_values"},
+    "planned_read_tier": {"enum": ["A", "B", "C"]},
+    "case_answer_key_tier": {"type": "null"},
+    "control_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "fault_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

@@ -1,0 +1,148 @@
+﻿bucket_id,app,mechanism,matched_pairs
+action_effect_side_effects,Broccoli,cancel_commits,4
+action_effect_side_effects,Broccoli,collateral_change,4
+action_effect_side_effects,Broccoli,duplicate_commit,4
+action_effect_side_effects,Broccoli,no_op_edit,4
+action_effect_side_effects,Broccoli,wrong_target_edit,4
+action_effect_side_effects,Pro Expense,cancel_commits,4
+action_effect_side_effects,Pro Expense,collateral_change,4
+action_effect_side_effects,Pro Expense,duplicate_commit,4
+action_effect_side_effects,Pro Expense,no_op_edit,4
+action_effect_side_effects,Pro Expense,wrong_target_edit,4
+action_effect_side_effects,Simple Calendar Pro,cancel_commits,4
+action_effect_side_effects,Simple Calendar Pro,collateral_change,4
+action_effect_side_effects,Simple Calendar Pro,duplicate_commit,4
+action_effect_side_effects,Simple Calendar Pro,no_op_edit,4
+action_effect_side_effects,Simple Calendar Pro,wrong_target_edit,4
+control_reachability,Broccoli,disabled_control,4
+control_reachability,Broccoli,hidden_control,4
+control_reachability,Broccoli,missing_control,4
+control_reachability,Broccoli,offscreen_control,4
+control_reachability,Broccoli,tap_no_effect,4
+control_reachability,Pro Expense,disabled_control,4
+control_reachability,Pro Expense,hidden_control,4
+control_reachability,Pro Expense,missing_control,4
+control_reachability,Pro Expense,offscreen_control,4
+control_reachability,Pro Expense,tap_no_effect,4
+control_reachability,Simple Calendar Pro,disabled_control,4
+control_reachability,Simple Calendar Pro,hidden_control,4
+control_reachability,Simple Calendar Pro,missing_control,4
+control_reachability,Simple Calendar Pro,offscreen_control,4
+control_reachability,Simple Calendar Pro,tap_no_effect,4
+navigation_transitions,Broccoli,back_wrong_origin,4
+navigation_transitions,Broccoli,cancel_changes_state,4
+navigation_transitions,Broccoli,reopen_wrong_record,4
+navigation_transitions,Broccoli,search_wrong_target,4
+navigation_transitions,Broccoli,wrong_destination,4
+navigation_transitions,Pro Expense,back_wrong_origin,4
+navigation_transitions,Pro Expense,cancel_changes_state,4
+navigation_transitions,Pro Expense,reopen_wrong_record,4
+navigation_transitions,Pro Expense,search_wrong_target,4
+navigation_transitions,Pro Expense,wrong_destination,4
+navigation_transitions,Simple Calendar Pro,back_wrong_origin,4
+navigation_transitions,Simple Calendar Pro,cancel_changes_state,4
+navigation_transitions,Simple Calendar Pro,reopen_wrong_record,4
+navigation_transitions,Simple Calendar Pro,search_wrong_target,4
+navigation_transitions,Simple Calendar Pro,wrong_destination,4
+permission_state,Simple Calendar Pro,post_notifications_denied_context_0,1
+permission_state,Simple Calendar Pro,post_notifications_denied_context_1,1
+permission_state,Simple Calendar Pro,post_notifications_denied_context_2,1
+permission_state,Simple Calendar Pro,post_notifications_denied_context_3,1
+permission_state,Simple Calendar Pro,post_notifications_denied_context_4,1
+permission_state,Simple Calendar Pro,post_notifications_granted_context_0,1
+permission_state,Simple Calendar Pro,post_notifications_granted_context_1,1
+permission_state,Simple Calendar Pro,post_notifications_granted_context_2,1
+permission_state,Simple Calendar Pro,post_notifications_granted_context_3,1
+permission_state,Simple Calendar Pro,post_notifications_granted_context_4,1
+permission_state,Simple Calendar Pro,read_calendar_denied_context_0,1
+permission_state,Simple Calendar Pro,read_calendar_denied_context_1,1
+permission_state,Simple Calendar Pro,read_calendar_denied_context_2,1
+permission_state,Simple Calendar Pro,read_calendar_denied_context_3,1
+permission_state,Simple Calendar Pro,read_calendar_denied_context_4,1
+permission_state,Simple Calendar Pro,read_calendar_granted_context_0,1
+permission_state,Simple Calendar Pro,read_calendar_granted_context_1,1
+permission_state,Simple Calendar Pro,read_calendar_granted_context_2,1
+permission_state,Simple Calendar Pro,read_calendar_granted_context_3,1
+permission_state,Simple Calendar Pro,read_calendar_granted_context_4,1
+permission_state,Simple Calendar Pro,read_contacts_denied_context_0,1
+permission_state,Simple Calendar Pro,read_contacts_denied_context_1,1
+permission_state,Simple Calendar Pro,read_contacts_denied_context_2,1
+permission_state,Simple Calendar Pro,read_contacts_denied_context_3,1
+permission_state,Simple Calendar Pro,read_contacts_denied_context_4,1
+permission_state,Simple Calendar Pro,read_contacts_granted_context_0,1
+permission_state,Simple Calendar Pro,read_contacts_granted_context_1,1
+permission_state,Simple Calendar Pro,read_contacts_granted_context_2,1
+permission_state,Simple Calendar Pro,read_contacts_granted_context_3,1
+permission_state,Simple Calendar Pro,read_contacts_granted_context_4,1
+persistence_lifecycle,Broccoli,force_stop_lost_value,4
+persistence_lifecycle,Broccoli,relaunch_duplicate,4
+persistence_lifecycle,Broccoli,reopen_lost_record,4
+persistence_lifecycle,Broccoli,resume_truncated_text,4
+persistence_lifecycle,Broccoli,rotation_stale_text,4
+persistence_lifecycle,Pro Expense,force_stop_lost_value,4
+persistence_lifecycle,Pro Expense,relaunch_duplicate,4
+persistence_lifecycle,Pro Expense,reopen_lost_record,4
+persistence_lifecycle,Pro Expense,resume_truncated_text,4
+persistence_lifecycle,Pro Expense,rotation_stale_text,4
+persistence_lifecycle,Simple Calendar Pro,force_stop_lost_value,4
+persistence_lifecycle,Simple Calendar Pro,relaunch_duplicate,4
+persistence_lifecycle,Simple Calendar Pro,reopen_lost_record,4
+persistence_lifecycle,Simple Calendar Pro,resume_truncated_text,4
+persistence_lifecycle,Simple Calendar Pro,rotation_stale_text,4
+presentation_consistency,Broccoli,stale_value,4
+presentation_consistency,Broccoli,truncated_required_text,4
+presentation_consistency,Broccoli,wrong_format_or_value,4
+presentation_consistency,Broccoli,wrong_primary_text,4
+presentation_consistency,Broccoli,wrong_secondary_value,4
+presentation_consistency,Pro Expense,stale_value,4
+presentation_consistency,Pro Expense,truncated_required_text,4
+presentation_consistency,Pro Expense,wrong_format_or_value,4
+presentation_consistency,Pro Expense,wrong_primary_text,4
+presentation_consistency,Pro Expense,wrong_secondary_value,4
+presentation_consistency,Simple Calendar Pro,stale_value,4
+presentation_consistency,Simple Calendar Pro,truncated_required_text,4
+presentation_consistency,Simple Calendar Pro,wrong_format_or_value,4
+presentation_consistency,Simple Calendar Pro,wrong_primary_text,4
+presentation_consistency,Simple Calendar Pro,wrong_secondary_value,4
+record_integrity,Broccoli,change_value:servings,10
+record_integrity,Broccoli,change_value:title,20
+record_integrity,Broccoli,delete_target,10
+record_integrity,Broccoli,truncate_text:directions,10
+record_integrity,Pro Expense,change_value:amount,20
+record_integrity,Pro Expense,change_value:name,10
+record_integrity,Pro Expense,delete_target,10
+record_integrity,Pro Expense,truncate_text:note,10
+record_integrity,Simple Calendar Pro,change_value:title,20
+record_integrity,Simple Calendar Pro,delete_target,10
+record_integrity,Simple Calendar Pro,shift_date:start_ts,10
+record_integrity,Simple Calendar Pro,truncate_text:description,10
+success_signal_truth,Broccoli,saved_but_missing,4
+success_signal_truth,Broccoli,saved_duplicate,4
+success_signal_truth,Broccoli,saved_with_collateral_damage,4
+success_signal_truth,Broccoli,saved_wrong_destination,4
+success_signal_truth,Broccoli,saved_wrong_value,4
+success_signal_truth,Pro Expense,saved_but_missing,4
+success_signal_truth,Pro Expense,saved_duplicate,4
+success_signal_truth,Pro Expense,saved_with_collateral_damage,4
+success_signal_truth,Pro Expense,saved_wrong_destination,4
+success_signal_truth,Pro Expense,saved_wrong_value,4
+success_signal_truth,Simple Calendar Pro,saved_but_missing,4
+success_signal_truth,Simple Calendar Pro,saved_duplicate,4
+success_signal_truth,Simple Calendar Pro,saved_with_collateral_damage,4
+success_signal_truth,Simple Calendar Pro,saved_wrong_destination,4
+success_signal_truth,Simple Calendar Pro,saved_wrong_value,4
+visual_layout,Broccoli,button_clipped,4
+visual_layout,Broccoli,keyboard_occlusion,4
+visual_layout,Broccoli,row_overlap,4
+visual_layout,Broccoli,text_clipped,4
+visual_layout,Broccoli,touch_target_too_small,4
+visual_layout,Pro Expense,button_clipped,4
+visual_layout,Pro Expense,keyboard_occlusion,4
+visual_layout,Pro Expense,row_overlap,4
+visual_layout,Pro Expense,text_clipped,4
+visual_layout,Pro Expense,touch_target_too_small,4
+visual_layout,Simple Calendar Pro,button_clipped,4
+visual_layout,Simple Calendar Pro,keyboard_occlusion,4
+visual_layout,Simple Calendar Pro,row_overlap,4
+visual_layout,Simple Calendar Pro,text_clipped,4
+visual_layout,Simple Calendar Pro,touch_target_too_small,4

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://artemis.local/schemas/android-qa-oracle-calibration-v1.json",
+  "title": "Android QA answer-key calibration sample",
+  "type": "object",
+  "required": ["case_id", "tier", "sampled", "reviewer_labels", "settled_label", "verifier_label"],
+  "properties": {
+    "case_id": {"type": "string"},
+    "tier": {"enum": ["A", "B", "C", "X"]},
+    "sampled": {"type": "boolean"},
+    "reviewer_labels": {
+      "type": "array",
+      "description": "Two independent labels made blind to the agent verdict.",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {"enum": ["criterion_true", "criterion_false", "unresolved"]}
+    },
+    "settled_label": {"enum": ["criterion_true", "criterion_false", "unresolved"]},
+    "adjudication": {"type": ["string", "null"]},
+    "verifier_label": {"enum": ["criterion_true", "criterion_false", "unresolved"]},
+    "verifier_correct_after_adjudication": {"type": ["boolean", "null"]},
+    "artifact_ids": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

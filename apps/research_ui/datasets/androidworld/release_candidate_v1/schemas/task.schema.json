@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://artemis.local/schemas/android-qa-osworld-profile-v1.json",
+  "title": "Artemis Android QA task in OSWorld JSON task shape",
+  "description": "Uses OSWorld's id/instruction/source/related_apps/config-array/evaluator-object convention, with a custom Artemis setup and evaluator adapter. Not directly executable by OSWorld.",
+  "type": "object",
+  "required": ["id", "instruction", "source", "related_apps", "config", "evaluator", "agent_view", "artemis_qa"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "instruction": {"type": "string", "minLength": 1},
+    "source": {"type": "string"},
+    "related_apps": {"type": "array", "items": {"type": "string"}},
+    "agent_view": {
+      "type": "object",
+      "description": "Only this view and live device observations may enter actor/Checker context. Config and evaluator are orchestrator-only.",
+      "required": ["instruction", "platform", "app"],
+      "properties": {
+        "instruction": {"type": "string"},
+        "platform": {"const": "android"},
+        "app": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "config": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "parameters"],
+        "properties": {
+          "type": {"type": "string"},
+          "parameters": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "evaluator": {
+      "type": "object",
+      "required": ["func", "result", "expected", "options"],
+      "properties": {
+        "func": {"type": "string"},
+        "result": {"type": "object"},
+        "expected": {"type": "object"},
+        "options": {
+          "type": "object",
+          "required": ["verifier_id", "oracle_kind", "oracle_version"],
+          "properties": {
+            "verifier_id": {"type": "string"},
+            "oracle_kind": {"type": "string"},
+            "oracle_version": {"type": "string"}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "artemis_qa": {
+      "type": "object",
+      "required": ["schema_version", "suite_id", "case_id", "pair_id", "variant", "family", "verifier_id", "agent_result_status", "device_validation_status", "ground_truth_hidden_from_actor_and_checker"],
+      "properties": {
+        "schema_version": {"const": "artemis-osworld-profile/v1"},
+        "suite_id": {"type": "string"},
+        "case_id": {"type": "string"},
+        "pair_id": {"type": "string"},
+        "variant": {"enum": ["control", "fault"]},
+        "family": {"type": "string"},
+        "verifier_id": {"type": "string"},
+        "expected_agent_verdict": {"enum": ["PASS", "FAIL"]},
+        "agent_result_status": {"type": "string"},
+        "device_validation_status": {"type": "string"},
+        "pair_control_and_fault_share_instruction": {"type": "boolean"},
+        "ground_truth_hidden_from_actor_and_checker": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

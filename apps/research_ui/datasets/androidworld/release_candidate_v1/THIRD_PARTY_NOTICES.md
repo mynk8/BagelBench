@@ -1,0 +1,1 @@
+Derived task templates and parameterized instances originate from Google Research AndroidWorld at revision `55ddaf5edc6f6c25673aed343907d5b9dca66f84`. AndroidWorld is distributed under Apache License 2.0; the full license text is in `source/ANDROIDWORLD_LICENSE`. Artemis-specific QA prompts, fault pairings, task envelope, and evaluation taxonomy are additions.

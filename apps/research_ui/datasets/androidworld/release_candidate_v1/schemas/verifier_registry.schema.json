@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://artemis.local/schemas/android-qa-verifier-registry-v1.json",
+  "title": "Android QA verifier registry",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "registry_status",
+    "confidence_policy",
+    "verifiers"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "artemis-android-qa-verifier-registry/v1"
+    },
+    "registry_status": {
+      "type": "string"
+    },
+    "confidence_policy": {
+      "type": "object",
+      "required": [
+        "read_tiers",
+        "case_tier_rule",
+        "human_calibration",
+        "headline_results",
+        "agent_confidence"
+      ],
+      "properties": {
+        "read_tiers": {
+          "type": "object"
+        },
+        "case_tier_rule": {
+          "type": "string"
+        },
+        "human_calibration": {
+          "type": "string"
+        },
+        "headline_results": {
+          "type": "string"
+        },
+        "agent_confidence": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "verifiers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "verifier_id",
+          "bucket_id",
+          "status",
+          "implementation",
+          "predicate"
+        ],
+        "properties": {
+          "verifier_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bucket_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "implemented_pending_device_admission",
+              "design_only_no_admitted_tasks",
+              "design_only_no_faulted_tasks",
+              "design_only_no_admitted_faults",
+              "design_only_no_admitted_pairs",
+              "design_only_environment_missing",
+              "design_only_fault_seam_missing",
+              "design_only_permission_fixture_needed",
+              "reference_verifier_implemented_device_adapter_pending"
+            ]
+          },
+          "implementation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_adapter": {
+            "type": "string"
+          },
+          "task_templates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "predicate": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "input_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "required_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "admission_gates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "known_limits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fault_confirmation": {
+            "type": "string"
+          },
+          "truth": {
+            "type": "string"
+          },
+          "agent_verdict_scoring": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

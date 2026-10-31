@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Android QA benchmark map</title>
+  <style>
+    :root { color-scheme: light; --ink:#17211f; --muted:#65716e; --line:#dce4e1; --paper:#f4f7f5; --card:#fff; --green:#18785e; --pale:#e7f3ee; --amber:#986318; --amber-pale:#fbf1dd; --blue:#315e9b; --blue-pale:#e9f0fa; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; }
+    main { max-width:1240px; margin:auto; padding:32px clamp(16px,4vw,48px) 48px; }
+    header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; padding-bottom:24px; border-bottom:1px solid var(--line); }
+    .eyebrow { color:var(--green); font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    h1 { margin:8px 0 6px; font-size:clamp(24px,4vw,36px); line-height:1.12; letter-spacing:-.03em; }
+    .lede { max-width:700px; margin:0; color:var(--muted); }
+    .draft { flex:none; padding:6px 10px; border-radius:99px; background:var(--amber-pale); color:var(--amber); font-size:12px; font-weight:700; }
+    .stats { display:flex; gap:28px; flex-wrap:wrap; padding:18px 0 24px; }
+    .stat { display:flex; gap:8px; align-items:baseline; }
+    .stat strong { font-size:20px; font-variant-numeric:tabular-nums; }
+    .stat span { color:var(--muted); font-size:13px; }
+    h2 { margin:26px 0 12px; font-size:18px; letter-spacing:-.01em; }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:26px; position:relative; }
+    .node { position:relative; min-height:136px; padding:15px 15px 13px; border:1px solid var(--line); border-radius:12px; background:var(--card); }
+    .node:not(:last-child)::after { content:"→"; position:absolute; right:-21px; top:43%; color:#82908b; font-size:19px; }
+    .step { color:var(--green); font:700 11px/1 ui-monospace,monospace; letter-spacing:.08em; }
+    .node h3 { margin:10px 0 6px; font-size:15px; }
+    .node p { margin:0; color:var(--muted); font-size:13px; }
+    .split { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+    .lane { padding:14px 16px; border-radius:10px; }
+    .lane h3 { margin:0 0 5px; font-size:14px; }
+    .lane p { margin:0; font-size:13px; }
+    .agent { background:var(--blue-pale); color:var(--blue); }
+    .oracle { background:var(--pale); color:var(--green); }
+    .bucket-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .bucket { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; min-height:70px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--card); }
+    .bucket span { font-size:13px; font-weight:600; }
+    .state { flex:none; color:var(--muted); font:11px/1.2 ui-monospace,monospace; text-align:right; }
+    .state.active { color:var(--green); }
+    .bottom { display:grid; grid-template-columns:1.25fr .75fr; gap:24px; margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+    .bottom p { margin:0; color:var(--muted); font-size:13px; }
+    nav { display:flex; flex-wrap:wrap; gap:8px; align-content:start; }
+    nav a { padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); text-decoration:none; font-size:12px; }
+    nav a:hover { border-color:var(--green); color:var(--green); }
+    @media(max-width:900px) { .flow { grid-template-columns:repeat(3,minmax(0,1fr)); } .node:nth-child(3)::after { display:none; } .bucket-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:580px) { main { padding-top:22px; } header { display:block; } .draft { display:inline-block; margin-top:14px; } .flow { grid-template-columns:1fr; gap:9px; } .node { min-height:auto; } .node:not(:last-child)::after { content:"↓"; display:block; right:15px; top:auto; bottom:-18px; z-index:2; font-size:16px; } .split,.bottom { grid-template-columns:1fr; } .bucket-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="eyebrow">Artemis · Android QA research</div>
+      <h1>From app state to a verifiable verdict</h1>
+      <p class="lede">Each evaluation is a matched control/fault pair. The agent inspects the app; an independent oracle decides whether its verdict matches the real state.</p>
+    </div>
+    <div class="draft">POC · SOURCE-DERIVED CASES</div>
+  </header>
+
+  <section class="stats" aria-label="Current dataset counts">
+    <div class="stat"><strong>600</strong><span>authored reference pairs</span></div>
+    <div class="stat"><strong>1,200</strong><span>control/fault variants</span></div>
+    <div class="stat"><strong>9</strong><span>QA buckets</span></div>
+    <div class="stat"><strong>147</strong><span>app / bucket / mutation templates</span></div>
+    <div class="stat"><strong>3</strong><span>source apps</span></div>
+  </section>
+
+  <h2>Evaluation path</h2>
+  <section class="flow" aria-label="Evaluation path from source task to scored verdict">
+    <article class="node"><div class="step">01 · SOURCE</div><h3>Freeze task state</h3><p>AndroidWorld task, seed, app build, and device profile.</p></article>
+    <article class="node"><div class="step">02 · PAIR</div><h3>Make control + fault</h3><p>Apply one declared mutation; verify truth before the run.</p></article>
+    <article class="node"><div class="step">03 · INSPECT</div><h3>Agent sees the app</h3><p>Same natural-language test and live observations for both variants.</p></article>
+    <article class="node"><div class="step">04 · VERIFY</div><h3>Read independent state</h3><p>Check outcome, protected state, and what evidence was exposed.</p></article>
+    <article class="node"><div class="step">05 · SCORE</div><h3>Compare verdict to truth</h3><p>False PASS, false FAIL, correct verdict, abstention, or exclusion.</p></article>
+  </section>
+  <div class="split">
+    <div class="lane agent"><h3>Agent view</h3><p>Instruction · device screen · accessibility observations · allowed actions</p></div>
+    <div class="lane oracle"><h3>Hidden verifier view</h3><p>Seed · mutation · pre/post state · expected truth · protected-state checks</p></div>
+  </div>
+
+  <h2>What the benchmark checks</h2>
+  <section class="bucket-grid" aria-label="Evaluation buckets and readiness">
+    <div class="bucket"><span>Record integrity</span><div class="state active">150 PAIRS</div></div>
+    <div class="bucket"><span>Persistence & lifecycle</span><div class="state active">60 PAIRS</div></div>
+    <div class="bucket"><span>Action effects & side effects</span><div class="state active">60 PAIRS</div></div>
+    <div class="bucket"><span>Navigation transitions</span><div class="state active">60 PAIRS</div></div>
+    <div class="bucket"><span>Control reachability</span><div class="state active">60 PAIRS</div></div>
+    <div class="bucket"><span>Visual layout</span><div class="state active">60 PAIRS</div></div>
+    <div class="bucket"><span>Displayed text correctness</span><div class="state active">60 PAIRS</div></div>
+    <div class="bucket"><span>Permission state</span><div class="state active">30 PAIRS</div></div>
+    <div class="bucket"><span>Success signal vs outcome</span><div class="state active">60 PAIRS</div></div>
+  </section>
+
+  <section class="bottom">
+    <p><strong>PoC scope.</strong> Six hundred logical reference pairs derive target values from three pinned AndroidWorld task generators. All 600 controls satisfy their offline predicate and all 600 faults violate it. UI rectangles, transition keys, lifecycle effects, and feedback timestamps are authored reference examples. Live fixture/capture adapters must enact these cases before agent benchmarking. Five existing emulator fixture observations remain separately recorded. No agent outcomes or human tier-calibration labels are claimed.</p>
+    <nav aria-label="Dataset files">
+      <a href="evaluation_buckets_v1.csv">Buckets CSV</a>
+      <a href="expanded_v1/pair_catalog.csv">600 pair catalog CSV</a>
+      <a href="expanded_v1/bucket_distribution.csv">Bucket distribution CSV</a>
+      <a href="expanded_v1/app_bucket_distribution.csv">App × bucket CSV</a>
+      <a href="release_candidate_v1/showcase_trials.csv">150 pairs · 300 variants CSV</a>
+      <a href="release_candidate_v1/device_seed_observations.csv">Fixture observations CSV</a>
+      <a href="release_candidate_v1/planned_trials.csv">Pilot trials CSV</a>
+      <a href="release_candidate_v1/verifier_contracts.csv">Verifier contracts CSV</a>
+      <a href="release_candidate_v1/androidworld_oracles.csv">116 oracles CSV</a>
+      <a href="release_candidate_v1/tasks.jsonl">Task records JSONL</a>
+      <a href="evaluation-design-v1.md">Design protocol</a>
+    </nav>
+  </section>
+</main>
+</body>
+</html>

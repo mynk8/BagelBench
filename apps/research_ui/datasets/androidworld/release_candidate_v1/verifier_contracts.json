@@ -1,0 +1,252 @@
+{
+  "schema_version": "artemis-android-qa-verifier-registry/v1",
+  "registry_status": "nine_offline_reference_predicates; one_SQLite_device_fixture_adapter",
+  "confidence_policy": {
+    "read_tiers": {
+      "A": "deterministic independent state read",
+      "B": "code-verified deterministic UI read",
+      "C": "perceptual or human-judgment read",
+      "X": "unresolved conflict; exclude and count"
+    },
+    "case_tier_rule": "Assign every required read a tier. The case inherits its weakest required tier (A > B > C). Any unresolved required-read conflict after adjudication assigns X.",
+    "human_calibration": "Two independent blind labels on a random tier-stratified sample; report Cohen kappa; adjudicate disagreements; report verifier agreement with settled labels per tier.",
+    "headline_results": "Tiers A and B. Report C separately with measured answer-key accuracy and worst-direction sensitivity bounds.",
+    "agent_confidence": "Separate numeric value in [0,1] returned with the verdict. Never use it to set answer-key tier."
+  },
+  "verifiers": [
+    {
+      "verifier_id": "record_integrity.sqlite_exact_preserve.v1",
+      "bucket_id": "record_integrity",
+      "status": "implemented_pending_device_admission",
+      "implementation": "apps/research_ui/scripts/qa_pilot.py::strict_oracle",
+      "device_adapter": "apps/research_ui/scripts/androidworld_device.py::run",
+      "task_templates": [
+        "SimpleCalendarAddOneEvent",
+        "ExpenseAddSingle",
+        "RecipeAddSingleRecipe"
+      ],
+      "input_artifacts": [
+        "baseline_rows",
+        "post_run_rows",
+        "expected_target_records",
+        "required_fields"
+      ],
+      "predicate": [
+        "Every baseline row remains unchanged in post_run_rows.",
+        "After removing baseline rows, exactly the expected number of target rows remains.",
+        "Each expected target matches exactly one remaining row on every required field.",
+        "No unmatched rows remain."
+      ],
+      "truth": "true iff predicate holds; fault fixture is valid only when the same predicate is false before agent execution",
+      "fault_confirmation": "Re-read app state after mutation and reject the fixture unless criterion truth is the opposite of the control.",
+      "agent_verdict_scoring": {
+        "known_true": {
+          "PASS": "correct_approval",
+          "FAIL": "false_fail"
+        },
+        "known_false": {
+          "FAIL": "fault_detected",
+          "PASS": "false_pass"
+        },
+        "INCONCLUSIVE": "abstention"
+      },
+      "admission_gates": [
+        "device_reset_replay",
+        "pre_run_oracle",
+        "fault_confirmed",
+        "visibility_human_review",
+        "post_run_oracle",
+        "protected_state_unchanged"
+      ],
+      "known_limits": [
+        "Inspects exact persisted fields; does not test misleading success feedback.",
+        "A case is not scoreable until device truth and discoverability are recorded."
+      ],
+      "generated_reference_pair_count": 150,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values"
+    },
+    {
+      "verifier_id": "persistence.lifecycle_snapshot.v1",
+      "bucket_id": "persistence_lifecycle",
+      "status": "reference_verifier_implemented_device_adapter_pending",
+      "implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "task_templates": [],
+      "predicate": [
+        "Compare canonical target and protected-state snapshots before and after a named lifecycle boundary.",
+        "Require control state to survive and seeded lost-write or stale-restore fault to violate the same target predicate."
+      ],
+      "required_artifacts": [
+        "lifecycle_event_log",
+        "pre_state_snapshot",
+        "post_boundary_snapshot",
+        "protected_state_diff",
+        "fault_confirmation"
+      ],
+      "generated_reference_pair_count": 60,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values",
+      "implementation_scope": "offline_reference_artifacts; live_reader_and_fixture_hook_pending"
+    },
+    {
+      "verifier_id": "action_effects.expected_delta.v1",
+      "bucket_id": "action_effect_side_effects",
+      "status": "reference_verifier_implemented_device_adapter_pending",
+      "implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "task_templates": [],
+      "predicate": [
+        "Assert the declared target delta occurs exactly once.",
+        "Assert every protected record and unrelated state invariant is unchanged."
+      ],
+      "required_artifacts": [
+        "pre_state_snapshot",
+        "expected_delta",
+        "post_state_snapshot",
+        "protected_state_diff"
+      ],
+      "generated_reference_pair_count": 60,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values",
+      "implementation_scope": "offline_reference_artifacts; live_reader_and_fixture_hook_pending"
+    },
+    {
+      "verifier_id": "navigation.transition_contract.v1",
+      "bucket_id": "navigation_transitions",
+      "status": "reference_verifier_implemented_device_adapter_pending",
+      "implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "task_templates": [],
+      "predicate": [
+        "Match deterministic screen fingerprints from the accessibility hierarchy against an annotated transition contract; activity names alone are insufficient for Compose screens.",
+        "Check Back, cancel, search, and return behavior against the case-specific expected transition.",
+        "Check final app state and forbidden side effects independently."
+      ],
+      "required_artifacts": [
+        "expected_transition_contract",
+        "timestamped_activity_and_tree_sequence",
+        "final_state_oracle",
+        "seeded_route_fault"
+      ],
+      "generated_reference_pair_count": 60,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values",
+      "implementation_scope": "offline_reference_artifacts; live_reader_and_fixture_hook_pending"
+    },
+    {
+      "verifier_id": "controls.accessibility_contract.v1",
+      "bucket_id": "control_reachability",
+      "status": "reference_verifier_implemented_device_adapter_pending",
+      "implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "task_templates": [],
+      "predicate": [
+        "Find the contracted node by stable resource id or reviewed semantic locator.",
+        "Check visible, enabled, clickable, and positive screen-intersecting bounds.",
+        "Use a safe hit test only for non-destructive controls."
+      ],
+      "required_artifacts": [
+        "raw_accessibility_hierarchy_xml",
+        "viewport_dimensions",
+        "required_control_contract",
+        "faulted_control_case",
+        "screenshot_review_when_node_missing"
+      ],
+      "generated_reference_pair_count": 60,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values",
+      "implementation_scope": "offline_reference_artifacts; live_reader_and_fixture_hook_pending"
+    },
+    {
+      "verifier_id": "layout.geometry_review.v1",
+      "bucket_id": "visual_layout",
+      "status": "reference_verifier_implemented_device_adapter_pending",
+      "implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "task_templates": [],
+      "predicate": [
+        "Compute viewport clipping and pairwise rectangle overlap from raw node bounds.",
+        "Compare against case-specific frozen thresholds.",
+        "Require blinded screenshot adjudication for whether overlap or clipping is harmful."
+      ],
+      "required_artifacts": [
+        "raw_accessibility_hierarchy_xml",
+        "screenshot",
+        "viewport_dimensions",
+        "target_node_contract",
+        "reviewer_label"
+      ],
+      "limits": [
+        "Geometry alone cannot distinguish harmful obstruction from benign nesting or overlays.",
+        "Use OCR or OmniParser only as labeled supplemental perception for content absent from the accessibility tree."
+      ],
+      "generated_reference_pair_count": 60,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values",
+      "implementation_scope": "offline_reference_artifacts; live_reader_and_fixture_hook_pending"
+    },
+    {
+      "verifier_id": "presentation.stored_vs_rendered.v1",
+      "bucket_id": "presentation_consistency",
+      "status": "reference_verifier_implemented_device_adapter_pending",
+      "implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "task_templates": [],
+      "predicate": [
+        "Read canonical stored value.",
+        "Capture rendered accessibility text; use OCR only if text is absent from the tree.",
+        "Apply a frozen locale/time-zone/unit normalizer per field type and compare."
+      ],
+      "required_artifacts": [
+        "stored_value",
+        "expected_format_rule",
+        "accessibility_tree_or_OCR",
+        "locale_and_timezone"
+      ],
+      "generated_reference_pair_count": 60,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values",
+      "implementation_scope": "offline_reference_artifacts; live_reader_and_fixture_hook_pending"
+    },
+    {
+      "verifier_id": "permission.package_appops.v1",
+      "bucket_id": "permission_state",
+      "status": "reference_verifier_implemented_device_adapter_pending",
+      "implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "task_templates": [],
+      "predicate": [
+        "Read granted/denied runtime permission and AppOps state from the pinned device.",
+        "Check protected-resource behavior against the declared permission state."
+      ],
+      "required_artifacts": [
+        "device_permission_snapshot",
+        "appops_snapshot",
+        "protected_resource_behavior",
+        "pinned_android_api_level"
+      ],
+      "generated_reference_pair_count": 30,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values",
+      "implementation_scope": "offline_reference_artifacts; live_reader_and_fixture_hook_pending"
+    },
+    {
+      "verifier_id": "feedback.signal_vs_durable_state.v1",
+      "bucket_id": "success_signal_truth",
+      "status": "reference_verifier_implemented_device_adapter_pending",
+      "implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "task_templates": [],
+      "predicate": [
+        "Record when success feedback appeared using an accessibility event, instrumented log, or persistent Snackbar.",
+        "Record whether the feedback appeared in observations delivered to the agent; report the exposure miss rate.",
+        "Independently read durable app state after the action.",
+        "Score feedback effects only for established exposure and compare against the matched signal-absent condition."
+      ],
+      "required_artifacts": [
+        "timestamped_feedback_event_or_screenshot",
+        "agent_observation_exposure_record",
+        "durable_pre_and_post_state",
+        "matched_signal_present_absent_pair",
+        "faulted_app_hook_or_build"
+      ],
+      "generated_reference_pair_count": 60,
+      "reference_implementation": "apps/research_ui/scripts/generate_qa_buckets.py::verify",
+      "reference_artifact_origin": "authored_contract_examples_from_androidworld_values",
+      "implementation_scope": "offline_reference_artifacts; live_reader_and_fixture_hook_pending"
+    }
+  ]
+}

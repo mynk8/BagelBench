@@ -1,0 +1,6 @@
+iteration	status	evidence	decision
+1	upstream-import-failed	Missing generated protobuf modules in pinned upstream checkout	Generate using upstream setup.py; keep
+2	backend-checks-passed	SQLite mutation and source reconstruction checks; no live device	Keep
+3	pilot-frozen	3 families; 30 parameterized instances; 60 trials; byte-identical regeneration	Keep
+4	scoring-checked	18 focused checks passed; worked-example numerators and denominators verified	Keep
+5	live-unverified	No connected AndroidWorld emulator; zero measured device trials	No research performance claim

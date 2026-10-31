@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://artemis.local/schemas/android-qa-run-result-v1.json",
+  "title": "Android QA benchmark run result",
+  "type": "object",
+  "required": ["run_id", "task_id", "pair_id", "variant", "condition", "execution_status", "agent_verdict", "ground_truth_status"],
+  "properties": {
+    "run_id": {"type": "string"},
+    "task_id": {"type": "string"},
+    "pair_id": {"type": "string"},
+    "variant": {"enum": ["control", "fault"]},
+    "condition": {"type": "string"},
+    "model": {"type": ["string", "null"]},
+    "model_provider": {"type": ["string", "null"]},
+    "harness_commit": {"type": ["string", "null"]},
+    "app_build_sha256": {"type": ["string", "null"]},
+    "android_image": {"type": ["string", "null"]},
+    "device_profile": {"type": ["string", "null"]},
+    "random_seed": {"type": ["integer", "null"]},
+    "execution_status": {"enum": ["completed", "failed", "excluded"]},
+    "infrastructure_error": {"type": ["string", "null"]},
+    "pre_oracle": {"type": ["object", "null"]},
+    "fault_confirmed": {"type": ["boolean", "null"]},
+    "agent_verdict": {"enum": ["PASS", "FAIL", "INCONCLUSIVE", "ERROR", "NOT_RUN"]},
+    "agent_confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "Model-reported confidence, kept separate from answer-key confidence."},
+    "answer_key_confidence_tier": {"enum": ["A", "B", "C", "X", null], "description": "Weakest tier among required oracle reads; X means unresolved conflict and the run is excluded."},
+    "oracle_reads": {
+      "type": "array",
+      "description": "Read-level answer-key evidence and confidence tiers. The case tier is the weakest required tier.",
+      "items": {
+        "type": "object",
+        "required": ["read_id", "tier", "required"],
+        "properties": {
+          "read_id": {"type": "string"},
+          "tier": {"enum": ["A", "B", "C", "X"]},
+          "required": {"type": "boolean"},
+          "method": {"type": ["string", "null"]},
+          "artifact_ids": {"type": "array", "items": {"type": "string"}},
+          "result": {},
+          "conflict_adjudication": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "evidence_ids": {"type": "array", "items": {"type": "string"}},
+    "ui_snapshots": {
+      "type": "array",
+      "description": "Per-step references to the captured screenshot and raw accessibility hierarchy; the raw hierarchy is stored in that step's trace metadata.",
+      "items": {
+        "type": "object",
+        "required": ["step_id", "phase", "screen_width", "screen_height"],
+        "properties": {
+          "step_id": {"type": "string"},
+          "phase": {"enum": ["before_action", "after_action", "final"]},
+          "screenshot_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+          "accessibility_xml_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+          "screen_width": {"type": "integer", "minimum": 1},
+          "screen_height": {"type": "integer", "minimum": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "post_oracle": {"type": ["object", "null"]},
+    "protected_state_changed": {"type": ["boolean", "null"]},
+    "ground_truth_status": {"enum": ["known_true", "known_false", "unknown", "invalid_setup"]},
+    "scored_label": {"enum": ["correct_approval", "fault_detected", "false_pass", "false_fail", "inconclusive", "infrastructure_exclusion", "unscored"]},
+    "action_count": {"type": ["integer", "null"], "minimum": 0},
+    "model_call_count": {"type": ["integer", "null"], "minimum": 0},
+    "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+    "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+    "cost_usd": {"type": ["number", "null"], "minimum": 0},
+    "trace_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "artifact_manifest_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+  },
+  "additionalProperties": false
+}

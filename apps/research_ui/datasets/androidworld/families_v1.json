@@ -1,0 +1,229 @@
+{
+  "schema_version": "artemis-android-qa-families/v1",
+  "source_revision": "55ddaf5edc6f6c25673aed343907d5b9dca66f84",
+  "families": [
+    {
+      "family_id": "data.record_integrity",
+      "testing_question": "Does the visible record contain the requested values, with the right count and no unintended changes?",
+      "independent_oracles": [
+        "SQLite",
+        "file_contents",
+        "Android_provider"
+      ],
+      "fault_mechanisms": [
+        "missing_record",
+        "wrong_field_value",
+        "duplicate_record",
+        "truncated_text",
+        "wrong_date"
+      ],
+      "androidworld_sources": [
+        "ExpenseAddSingle",
+        "SimpleCalendarAddOneEvent",
+        "RecipeAddSingleRecipe",
+        "ContactsAddContact",
+        "MarkorCreateNote"
+      ],
+      "artemis_status": "pilot_specified; device admission still required",
+      "current_pilot_coverage": [
+        "calendar.record_integrity",
+        "expense.record_integrity",
+        "recipe.record_integrity"
+      ],
+      "generated_reference_pairs": 150,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    },
+    {
+      "family_id": "data.persistence_lifecycle",
+      "testing_question": "Does the expected state survive close/reopen, rotation, process restart, or relaunch?",
+      "independent_oracles": [
+        "SQLite",
+        "file_contents",
+        "Android_provider"
+      ],
+      "fault_mechanisms": [
+        "write_not_durable",
+        "stale_restore",
+        "lost_update"
+      ],
+      "androidworld_sources": [
+        "MarkorCreateNote",
+        "MarkorEditNote",
+        "SimpleCalendarAddOneEvent",
+        "ExpenseAddSingle"
+      ],
+      "artemis_status": "candidate; lifecycle boundary adapter and fault injection required",
+      "current_pilot_coverage": [],
+      "generated_reference_pairs": 60,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    },
+    {
+      "family_id": "action.effect_and_side_effects",
+      "testing_question": "Did the requested action take effect exactly once on the intended target while protected state stayed unchanged?",
+      "independent_oracles": [
+        "before_after_state_diff",
+        "SQLite",
+        "file_contents",
+        "system_settings"
+      ],
+      "fault_mechanisms": [
+        "no_op",
+        "wrong_target",
+        "partial_effect",
+        "duplicate_effect",
+        "collateral_change"
+      ],
+      "androidworld_sources": [
+        "SimpleCalendarDeleteOneEvent",
+        "ExpenseDeleteSingle",
+        "RecipeDeleteSingleRecipe",
+        "MarkorMoveNote",
+        "TurnOnWifiAndOpenApp"
+      ],
+      "artemis_status": "candidate; action-oriented control/fault pairs required",
+      "current_pilot_coverage": [],
+      "generated_reference_pairs": 60,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    },
+    {
+      "family_id": "navigation.transition_integrity",
+      "testing_question": "Does the app reach the required screen and recover correctly through back, cancel, search, and return paths?",
+      "independent_oracles": [
+        "activity_and_ui_state_sequence",
+        "final_app_state",
+        "recorded_accessibility_tree"
+      ],
+      "fault_mechanisms": [
+        "wrong_destination",
+        "back_stack_error",
+        "cancel_commits",
+        "stuck_or_unreachable_screen"
+      ],
+      "androidworld_sources": [
+        "MarkorMoveNote",
+        "MarkorMergeNotes",
+        "SimpleCalendarDeleteOneEvent",
+        "ExpenseDeleteSingle"
+      ],
+      "artemis_status": "candidate; AndroidWorld supplies normal workflows, not seeded navigation defects",
+      "current_pilot_coverage": [],
+      "generated_reference_pairs": 60,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    },
+    {
+      "family_id": "control.reachability",
+      "testing_question": "Are required controls present, enabled, visible, and reachable on the target screen?",
+      "independent_oracles": [
+        "accessibility_tree",
+        "element_bounds",
+        "safe_hit_test"
+      ],
+      "fault_mechanisms": [
+        "missing_control",
+        "disabled_control",
+        "occluded_control",
+        "offscreen_control"
+      ],
+      "androidworld_sources": [
+        "task_screen_observations",
+        "screen_variation_wrapper"
+      ],
+      "artemis_status": "candidate; explicit UI contract and faulted build/config required",
+      "current_pilot_coverage": [],
+      "generated_reference_pairs": 60,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    },
+    {
+      "family_id": "visual.layout_integrity",
+      "testing_question": "Are required labels and controls legible, within the viewport, and free of harmful overlap?",
+      "independent_oracles": [
+        "UI_tree_geometry",
+        "screenshot_geometry",
+        "blinded_human_review"
+      ],
+      "fault_mechanisms": [
+        "overlap",
+        "clipping",
+        "truncation",
+        "misalignment",
+        "missing_visual_content"
+      ],
+      "androidworld_sources": [
+        "screen_variation_wrapper",
+        "data_entry_tasks",
+        "ClockTimerEntry"
+      ],
+      "artemis_status": "candidate; AndroidWorld varies screen profiles but supplies no defect labels",
+      "current_pilot_coverage": [],
+      "generated_reference_pairs": 60,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    },
+    {
+      "family_id": "content.presentation_consistency",
+      "testing_question": "Does the text presented to the user faithfully represent the underlying value and requested format?",
+      "independent_oracles": [
+        "stored_value",
+        "accessibility_text",
+        "screenshot_OCR",
+        "format_predicate"
+      ],
+      "fault_mechanisms": [
+        "wrong_unit_or_currency",
+        "stale_label",
+        "format_mismatch",
+        "ellipsis_hides_required_text"
+      ],
+      "androidworld_sources": [
+        "ExpenseAddSingle",
+        "SimpleCalendarAddOneEvent",
+        "RecipeAddSingleRecipe"
+      ],
+      "artemis_status": "candidate; separate display-vs-storage predicates required",
+      "current_pilot_coverage": [],
+      "generated_reference_pairs": 60,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    },
+    {
+      "family_id": "access.permission_state",
+      "testing_question": "Does app behavior match the granted or denied Android runtime permission state?",
+      "independent_oracles": [
+        "package_permission_state",
+        "appops_state",
+        "protected_resource_behavior"
+      ],
+      "fault_mechanisms": [
+        "denied_permission_ignored",
+        "revoked_permission_still_used",
+        "granted_permission_rejected"
+      ],
+      "androidworld_sources": [
+        "Android system permission tasks"
+      ],
+      "artemis_status": "candidate; deterministic permission and AppOps oracle defined",
+      "current_pilot_coverage": [],
+      "generated_reference_pairs": 30,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    },
+    {
+      "family_id": "transaction.success_signal",
+      "testing_question": "Does success feedback agree with durable state after the action?",
+      "independent_oracles": [
+        "SQLite_or_service_state",
+        "toast_and_screen_exposure_record"
+      ],
+      "fault_mechanisms": [
+        "success_signal_with_dropped_write",
+        "success_signal_with_wrong_write"
+      ],
+      "androidworld_sources": [
+        "ExpenseAddSingle",
+        "SimpleCalendarAddOneEvent",
+        "RecipeAddSingleRecipe"
+      ],
+      "artemis_status": "research_target; app hook or patched APK needed to decouple feedback from persistence",
+      "current_pilot_coverage": [],
+      "generated_reference_pairs": 60,
+      "reference_implementation": "generate_qa_buckets.py::verify"
+    }
+  ]
+}

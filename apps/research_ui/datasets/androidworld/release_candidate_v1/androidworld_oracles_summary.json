@@ -1,0 +1,19 @@
+{
+  "all_have_deterministic_evaluator_method": true,
+  "method": "static introspection; no emulator/evaluator execution",
+  "oracle_family_counts": {
+    "app_state": 10,
+    "composite_state": 3,
+    "file_state": 20,
+    "provider_state": 7,
+    "state_retrieval": 25,
+    "structured_data": 30,
+    "system_state": 14,
+    "ui_state": 7
+  },
+  "schema_version": "artemis-androidworld-oracle-audit/v1",
+  "scope": "registered ANDROID_WORLD_FAMILY task classes and their is_successful implementation source",
+  "source_revision": "55ddaf5edc6f6c25673aed343907d5b9dca66f84",
+  "task_count": 116,
+  "task_records": "oracle_inventory_v1.jsonl"
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://artemis.local/schemas/android-qa-pilot-observation-v1.json",
+  "title": "Recorded observation consumed by the frozen pilot scorer",
+  "type": "object",
+  "required": ["trial_id", "condition", "model", "repeat_index"],
+  "properties": {
+    "trial_id": {"type": "string", "minLength": 1},
+    "pair_id": {"type": ["string", "null"]},
+    "condition": {"type": "string", "minLength": 1},
+    "model": {"type": "string", "minLength": 1},
+    "repeat_index": {"type": "integer", "minimum": 1},
+    "verdict": {"enum": ["PASS", "FAIL", "INCONCLUSIVE", null]},
+    "pre_oracle_correct": {"type": ["boolean", "null"]},
+    "post_oracle_correct": {"type": ["boolean", "null"]},
+    "setup_confirmed": {"type": ["boolean", "null"]},
+    "visibility_confirmed": {"type": ["boolean", "null"]},
+    "protected_state_changed": {"type": ["boolean", "null"]},
+    "criterion_matched": {"type": ["boolean", "null"]},
+    "error": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"error": {"type": "string"}}, "required": ["error"]},
+      "then": {},
+      "else": {"required": ["verdict", "pre_oracle_correct", "post_oracle_correct", "setup_confirmed", "visibility_confirmed", "protected_state_changed", "criterion_matched"]}
+    }
+  ],
+  "additionalProperties": true
+}
